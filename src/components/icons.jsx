@@ -9,6 +9,13 @@ export const icons = {
       <circle cx="17" cy="17" r="2" />
     </svg>
   ),
+  home: (
+    <svg {...base}>
+      <path d="M3 10.5L12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+      <path d="M10 21v-6h4v6" />
+    </svg>
+  ),
   plus: (
     <svg {...base}>
       <path d="M12 5v14M5 12h14" />

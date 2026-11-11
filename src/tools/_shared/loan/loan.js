@@ -1,19 +1,5 @@
-// Pure loan maths — no React here, so it's easy to test or reuse.
-
-export const DEFAULTS = {
-  principal: 20908,
-  rate: 10.41, // % p.a.
-  term: 60, // months
-  fee: 15, // monthly account fee
-  start: "2026-12-01", // loan start (settlement) date
-  swapFall: 2, // assumed fall in wholesale swap rate, % (break cost)
-  swapNow: 3.5, // assumed swap rate at payout, % (break cost discount)
-};
-
-export const ADMIN_FEE = 100;
-export const ETF_MAX = 750;
-export const ETF_MONTHLY_REDUCTION = 15;
-export const WAIVER_MONTHS = 3;
+// Pure loan maths shared by every loan tracker. No React here.
+// Fee rules come from each tool's config (see src/tools/<tool>/config.js).
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -73,28 +59,50 @@ export function summarise(rows, paid) {
 }
 
 /**
- * Estimated payout if the loan were closed on `today`.
- * Fees per the contract: $100 admin fee, early termination fee of
- * $750 − $15 per full month (waived in the first/last 3 months),
- * plus the lender's break cost formula:
- *   contracted balance × swap rate fall × WARLT, discounted by (1 + swap rate)^WARLT.
+ * Estimated payout if the loan were closed on `date`, given which repayments are paid.
+ * rules: { adminFee, etfMax, etfMonthlyReduction, waiverMonths, breakCost }
+ * Break cost (lender formula): contracted balance × swap rate fall × WARLT,
+ * discounted by (1 + swap rate at payout)^WARLT.
  */
-export function payout(s, rows, paid, today) {
+export function payout(s, rows, paid, date, rules) {
   const paidCount = rows.filter((r) => paid[r.n]).length;
   const future = rows.slice(paidCount);
   const balance = future.reduce((a, r) => a + r.principal, 0);
-  const months = fullMonthsBetween(parseISO(s.start), today);
+  const months = fullMonthsBetween(parseISO(s.start), date);
   const open = balance > 0.005;
+  const w = rules.waiverMonths ?? 0;
 
-  const etfWaived = months < WAIVER_MONTHS || months >= s.term - WAIVER_MONTHS;
-  const etf = !open || etfWaived ? 0 : Math.max(0, ETF_MAX - ETF_MONTHLY_REDUCTION * months);
-  const admin = open ? ADMIN_FEE : 0;
+  const etfWaived = months < w || months >= s.term - w;
+  const etf = !open || etfWaived ? 0 : Math.max(0, rules.etfMax - rules.etfMonthlyReduction * months);
+  const admin = open ? rules.adminFee : 0;
 
   const warlt = balance > 0 ? future.reduce((a, r, i) => a + (i + 1) * r.principal, 0) / balance / 12 : 0;
   const fall = Number(s.swapFall) || 0;
   const now = Number(s.swapNow) || 0;
-  const breakWaived = months >= s.term - WAIVER_MONTHS;
-  const breakCost = !open || breakWaived || fall <= 0 ? 0 : (balance * (fall / 100) * warlt) / Math.pow(1 + now / 100, warlt);
+  const breakWaived = months >= s.term - w;
+  const breakCost =
+    !rules.breakCost || !open || breakWaived || fall <= 0 ? 0 : (balance * (fall / 100) * warlt) / Math.pow(1 + now / 100, warlt);
 
   return { balance, months, etf, etfWaived, admin, warlt, breakCost, total: balance + etf + admin + breakCost };
+}
+
+/**
+ * Where the loan stands on a future (or past) date, assuming every repayment
+ * due on or before that date is paid on time.
+ */
+export function projectToDate(s, rows, date, rules) {
+  const paid = {};
+  let principalPaid = 0, interestPaid = 0, feesPaid = 0;
+  for (const r of rows) {
+    if (r.due <= date) {
+      paid[r.n] = true;
+      principalPaid += r.principal;
+      interestPaid += r.interest;
+      feesPaid += r.fee;
+    }
+  }
+  const paidCount = Object.keys(paid).length;
+  const lastPaid = paidCount ? rows[paidCount - 1] : null;
+  const nextDue = rows[paidCount] ?? null;
+  return { paidCount, lastPaid, nextDue, principalPaid, interestPaid, feesPaid, payout: payout(s, rows, paid, date, rules) };
 }

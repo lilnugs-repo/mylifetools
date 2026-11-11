@@ -2,7 +2,9 @@
 
 A lightweight React app (Vite) that holds a directory of personal tools. The home screen is a grid of tiles; each tile opens a tool at its own URL (`#/<tool-id>`). Tools can be locked behind a date-of-birth check.
 
-**Tool 1: My Car Loan Tracker** (locked) — tick off repayments, see principal and interest paid to date, and get a payout estimate with the early termination fee, admin fee and an estimated break cost.
+**Tools**
+1. **My Car Loan Tracker** (locked, $) — tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel showing the repayment due and payout figure on any date.
+2. **My Home Loan Tracker** (locked, **always Nrs.**) — same tracker; figures are placeholders for now. See `src/tools/home-loan/NOTES.md`.
 
 ## Project structure
 
@@ -27,11 +29,21 @@ my-tools/
     │   └── icons.jsx            # inline SVG icons
     └── tools/
         ├── registry.js          # list of tools → tiles + routes
-        └── car-loan/
-            ├── CarLoanTracker.jsx
-            ├── loan.js          # loan maths (schedule, totals, payout, break cost)
-            └── car-loan.css
+        ├── _shared/
+        │   └── loan/            # shared by every loan tracker
+        │       ├── LoanTracker.jsx   # UI, driven by a config
+        │       ├── loan.js           # maths: schedule, totals, payout, date projection
+        │       └── loan-tracker.css
+        ├── car-loan/
+        │   ├── CarLoanTracker.jsx
+        │   └── config.js        # $, car loan figures and fee rules
+        └── home-loan/
+            ├── HomeLoanTracker.jsx
+            ├── config.js        # Nrs., placeholder figures
+            └── NOTES.md         # currency rule + what to fill in
 ```
+
+Each loan tool is just a `config.js` (title, currency, figures, fee rules) passed to the shared `LoanTracker`. To add another loan, copy a loan folder, change its config and add it to the registry.
 
 ## Adding a tool
 
@@ -62,7 +74,7 @@ node -e "console.log(require('crypto').createHash('sha256').update('sach-tools:v
 
 ## Data
 
-Each tool saves to your browser's localStorage (car loan key: `tools:car-loan:v1`). Use **Loan details → Export backup / Import** to move data between devices.
+Each tool saves to your browser's localStorage (keys `tools:car-loan:v1` and `tools:home-loan:v1`). Use **Loan details → Export backup / Import** to move data between devices.
 
 ## Run locally
 

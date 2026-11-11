@@ -1,4 +1,14 @@
-/* Car loan tracker styles. Shared tokens and base elements live in src/styles/base.css. */
+/* Loan tracker styles (used by every loan tool). Shared tokens and base elements live in src/styles/base.css. */
+.check { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px }
+.check-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+.check-controls input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; color: var(--fg); min-width: 0 }
+.btn.small { padding: 4px 10px; font-size: 12px }
+.check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.check-cell { background: var(--bg); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.check-cell .k, .k-strong { font-size: 12px; font-weight: 700; color: var(--muted) }
+.check-cell .v { font-size: 20px; font-weight: 600 }
+.check-cell .of { font-size: 12px; color: var(--muted) }
+@media (max-width: 520px) { .check-grid { grid-template-columns: 1fr } }
 .loan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap }
 .sub { color: var(--muted); font-size: 13px; margin-top: 2px }
 .save { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px }

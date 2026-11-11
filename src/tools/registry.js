@@ -23,6 +23,14 @@ export const tools = [
     lockHash: DOB_HASH,
     component: lazy(() => import("./car-loan/CarLoanTracker.jsx")),
   },
+  {
+    id: "home-loan",
+    name: "My Home Loan Tracker",
+    description: "Repayments and payout in Nrs.",
+    icon: "home",
+    lockHash: DOB_HASH,
+    component: lazy(() => import("./home-loan/HomeLoanTracker.jsx")),
+  },
 ];
 
 export const findTool = (id) => tools.find((t) => t.id === id);
