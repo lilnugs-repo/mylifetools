@@ -7,7 +7,7 @@ import { readJSON, writeJSON } from "./_lib/store.js";
 
 const TOOL_ID = /^[a-z0-9-]{1,40}$/;
 
-export default async function handler(request) {
+async function handle(request) {
   try {
     if (!isAuthed(request)) return json(401, { error: "unauthorised" });
 
@@ -31,6 +31,9 @@ export default async function handler(request) {
     return json(405, { error: "method_not_allowed" });
   } catch (e) {
     console.error(e);
-    return json(e.status || 500, { error: e.status ? e.message : "server_error" });
+    return json(e.status || 500, { error: e.status ? e.message : "server_error", detail: e.status ? undefined : e.message });
   }
 }
+
+export const GET = handle;
+export const PUT = handle;

@@ -2,8 +2,7 @@
 import { json, readBody } from "./_lib/http.js";
 import { dobMatches, normaliseDob, recentFails, saveFails, sessionCookie, MAX_FAILS, WINDOW_MS } from "./_lib/auth.js";
 
-export default async function handler(request) {
-  if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
+export async function POST(request) {
   try {
     const { dob } = await readBody(request, 1000);
     const fails = await recentFails();
@@ -27,6 +26,6 @@ export default async function handler(request) {
     return json(401, { error: "wrong", triesLeft });
   } catch (e) {
     console.error(e);
-    return json(e.status || 500, { error: e.status ? e.message : "server_error" });
+    return json(e.status || 500, { error: e.status ? e.message : "server_error", detail: e.status ? undefined : e.message });
   }
 }

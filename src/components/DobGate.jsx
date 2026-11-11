@@ -12,6 +12,7 @@ function formatTyping(v) {
 
 const MESSAGES = {
   offline: "Can't reach the server. Check your connection and try again.",
+  timeout: "The server took too long to answer. Check the function logs in Vercel.",
   no_api: "The server isn't running. Start the app with `vercel dev` (see README).",
   server: "Something went wrong on the server. Check the env variables are set (see README).",
 };

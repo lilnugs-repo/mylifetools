@@ -6,16 +6,23 @@
 //   wrong         wrong DoB ({ triesLeft })
 //   server        anything else
 
+const TIMEOUT_MS = 15_000;
+
 async function call(path, opts = {}) {
   let res;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     res = await fetch(path, {
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
+      signal: ctrl.signal,
       ...opts,
     });
-  } catch {
-    throw { code: "offline" };
+  } catch (e) {
+    throw { code: e?.name === "AbortError" ? "timeout" : "offline" };
+  } finally {
+    clearTimeout(timer);
   }
   const isJson = (res.headers.get("content-type") || "").includes("application/json");
   if (!isJson) throw { code: "no_api", status: res.status };
