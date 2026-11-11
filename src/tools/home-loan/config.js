@@ -6,8 +6,9 @@
 // PLACEHOLDERS: every figure below was copied from the car loan as a starting
 // point. Replace them with the real home loan terms.
 export default {
+  id: "home-loan", // also the file name in Blob: my-tools/tools/home-loan.json
   title: "My Home Loan Tracker",
-  storageKey: "tools:home-loan:v1",
+  storageKey: "tools:home-loan:v1", // offline cache in the browser
   currency: { symbol: "Nrs. ", locale: "en-IN" }, // en-IN gives lakh grouping, e.g. Nrs. 1,00,000.00
   defaults: {
     principal: 20908, // PLACEHOLDER

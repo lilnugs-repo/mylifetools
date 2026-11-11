@@ -1,0 +1,144 @@
+import { useEffect, useRef, useState } from "react";
+import { api } from "../../../lib/api.js";
+
+// Keeps a tool's state in the private Blob store (via /api/state), with a
+// localStorage copy as an offline cache.
+//   - On open: the server copy wins, unless this device has edits that never
+//     reached the server (pendingSync), in which case those are uploaded.
+//   - First time on the server: this device's existing local data is uploaded.
+//   - Edits save ~0.6s after you stop changing things (and on leaving the page).
+
+const STATUS_TEXT = {
+  loading: "Syncing…",
+  saving: "Saving…",
+  saved: "Saved",
+  offline: "Offline · saved on this device",
+  locked: "Signed out · saved on this device",
+  error: "Couldn't save · kept on this device",
+};
+
+function readCache(keys, defaults) {
+  try {
+    for (const k of keys) {
+      const v = JSON.parse(localStorage.getItem(k));
+      if (v && v.settings) return { state: { settings: { ...defaults, ...v.settings }, paid: v.paid || {} }, pending: !!v.pendingSync };
+    }
+  } catch {}
+  return null;
+}
+
+function writeCache(key, state, pending) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ...state, pendingSync: pending }));
+  } catch {}
+}
+
+export function useCloudState({ id, storageKey, legacyKeys = [], defaults }) {
+  const cached = useRef(readCache([storageKey, ...legacyKeys], defaults));
+  const [state, setState] = useState(() => cached.current?.state ?? { settings: { ...defaults }, paid: {} });
+  const [status, setStatus] = useState("loading");
+
+  const ready = useRef(false); // server has answered
+  const fromServer = useRef(false); // next state change came from the server, don't echo it back
+  const latest = useRef(state);
+  const timer = useRef(null);
+  const inflight = useRef(false);
+  const queued = useRef(null);
+
+  const push = (next) => {
+    if (inflight.current) {
+      queued.current = next;
+      return;
+    }
+    inflight.current = true;
+    setStatus("saving");
+    api
+      .putState(id, next)
+      .then(() => {
+        writeCache(storageKey, next, false);
+        setStatus("saved");
+      })
+      .catch((e) => {
+        writeCache(storageKey, next, true);
+        setStatus(e.code === "unauthorised" ? "locked" : e.code === "offline" || e.code === "no_api" ? "offline" : "error");
+      })
+      .finally(() => {
+        inflight.current = false;
+        if (queued.current) {
+          const q = queued.current;
+          queued.current = null;
+          push(q);
+        }
+      });
+  };
+
+  // Load once from the server
+  useEffect(() => {
+    let alive = true;
+    api
+      .getState(id)
+      .then((r) => {
+        if (!alive) return;
+        ready.current = true;
+        const local = cached.current;
+        if (local?.pending) return push(local.state);
+        if (r.data?.settings) {
+          const s = { settings: { ...defaults, ...r.data.settings }, paid: r.data.paid || {} };
+          fromServer.current = true;
+          setState(s);
+          writeCache(storageKey, s, false);
+          setStatus("saved");
+        } else if (local) push(local.state);
+        else setStatus("saved");
+      })
+      .catch((e) => {
+        if (!alive) return;
+        ready.current = true;
+        setStatus(e.code === "unauthorised" ? "locked" : "offline");
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Save after changes (debounced)
+  useEffect(() => {
+    latest.current = state;
+    if (fromServer.current) {
+      fromServer.current = false;
+      return;
+    }
+    if (!ready.current) return;
+    writeCache(storageKey, state, true);
+    setStatus("saving");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      push(state);
+    }, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // Don't lose a pending save when the tab is hidden or closed
+  useEffect(() => {
+    const flush = () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+        push(latest.current);
+      }
+    };
+    const onVis = () => document.visibilityState === "hidden" && flush();
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return { state, setState, status, statusText: STATUS_TEXT[status], loading: status === "loading" };
+}

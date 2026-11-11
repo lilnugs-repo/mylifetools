@@ -6,13 +6,13 @@ export default function Home() {
     <div className="wrap">
       <div className="home-intro">
         <h1>My tools</h1>
-        <p>Pick a tool to open it. Locked tools ask for your date of birth.</p>
+        <p>Pick a tool to open it. Locked tools ask for your date of birth once per login.</p>
       </div>
       <nav className="tiles-dir" aria-label="Tools">
         {tools.map((t) => (
           <a key={t.id} className="tool-tile" href={`#/${t.id}`}>
             <span className="ico">{icons[t.icon] ?? icons.plus}</span>
-            {t.lockHash && <span className="lock" title="Locked">{icons.lock}</span>}
+            {t.locked && <span className="lock" title="Locked">{icons.lock}</span>}
             <span className="name">{t.name}</span>
             <span className="desc">{t.description}</span>
           </a>

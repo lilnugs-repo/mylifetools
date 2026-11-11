@@ -1,31 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addMonths, buildSchedule, summarise, payout, projectToDate, parseISO, toISO } from "./loan.js";
+import { useCloudState } from "./useCloudState.js";
 import "./loan-tracker.css";
 
 /**
  * Generic loan tracker. Each tool passes a config (see src/tools/<tool>/config.js):
- *   title, storageKey, legacyKeys?, currency: { symbol, locale }, defaults, rules, termOptions, notes
+ *   id, title, storageKey, legacyKeys?, currency: { symbol, locale }, defaults, rules, termOptions
+ * State is saved to the private Blob store via /api/state, cached locally for offline use.
  */
 export default function LoanTracker({ config }) {
-  const { title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions } = config;
+  const { id, title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions } = config;
 
   const money = useMemo(() => makeMoney(currency), [currency]);
   const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 
-  const [state, setState] = useState(() => loadState(storageKey, legacyKeys, defaults));
+  const { state, setState, status, statusText } = useCloudState({ id, storageKey, legacyKeys, defaults });
   const [showSettings, setShowSettings] = useState(false);
-  const [saved, setSaved] = useState(true);
   const today = useMemo(startOfToday, []);
   const { settings: s, paid } = state;
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-      setSaved(true);
-    } catch {
-      setSaved(false);
-    }
-  }, [state, storageKey]);
 
   const rows = useMemo(() => buildSchedule(s), [s]);
   const totals = useMemo(() => summarise(rows, paid), [rows, paid]);
@@ -61,8 +53,8 @@ export default function LoanTracker({ config }) {
           </div>
         </div>
         <div className="head-actions">
-          <span className="save" data-s={saved ? "saved" : "local"}>
-            {saved ? "Saved on this device" : "Can't save in this browser"}
+          <span className="save" data-s={status} role="status">
+            {statusText}
           </span>
           <button className="btn" type="button" aria-expanded={showSettings} onClick={() => setShowSettings((v) => !v)}>
             Loan details
@@ -126,16 +118,6 @@ function makeMoney({ symbol, locale }) {
 function fmtYears(months) {
   const y = months / 12;
   return Number.isInteger(y) ? `${y} year${y === 1 ? "" : "s"}` : `${months} months`;
-}
-
-function loadState(key, legacyKeys, defaults) {
-  try {
-    for (const k of [key, ...legacyKeys]) {
-      const v = JSON.parse(localStorage.getItem(k));
-      if (v && v.settings) return { settings: { ...defaults, ...v.settings }, paid: v.paid || {} };
-    }
-  } catch {}
-  return { settings: { ...defaults }, paid: {} };
 }
 
 function startOfToday() {
