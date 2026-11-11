@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { icons } from "./icons.jsx";
-import { checkDob, normaliseDob, readAttempts, writeAttempts, setUnlocked, MAX_ATTEMPTS, LOCKOUT_MS } from "../lib/lock.js";
+import { api } from "../lib/api.js";
 
 /** Auto-insert slashes as the user types: 15081995 → 15/08/1995 */
 function formatTyping(v) {
@@ -10,14 +10,21 @@ function formatTyping(v) {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
+const MESSAGES = {
+  offline: "Can't reach the server. Check your connection and try again.",
+  no_api: "The server isn't running. Start the app with `vercel dev` (see README).",
+  server: "Something went wrong on the server. Check the env variables are set (see README).",
+};
+
+/** The DoB is checked on the server (/api/unlock); it's not stored in the app's code. */
 export default function DobGate({ tool, onUnlock }) {
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [until, setUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
-  const [attempts, setAttempts] = useState(() => readAttempts(tool.id));
   const inputRef = useRef(null);
-  const lockedOut = attempts.until > now;
+  const lockedOut = until > now;
 
   useEffect(() => inputRef.current?.focus(), []);
   useEffect(() => {
@@ -29,36 +36,37 @@ export default function DobGate({ tool, onUnlock }) {
   const submit = async (e) => {
     e.preventDefault();
     if (lockedOut || busy) return;
-    if (!normaliseDob(value)) {
+    if (value.replace(/\D/g, "").length !== 8) {
       setError("Enter a full date as DD/MM/YYYY.");
       return;
     }
     setBusy(true);
-    const ok = await checkDob(value, tool.lockHash);
-    setBusy(false);
-    if (ok) {
-      writeAttempts(tool.id, { count: 0, until: 0 });
-      setUnlocked(tool.id);
+    setError("");
+    try {
+      await api.unlock(value);
       onUnlock();
-      return;
+    } catch (err) {
+      setValue("");
+      if (err.code === "wrong") setError(`That date doesn't match. ${err.triesLeft} ${err.triesLeft === 1 ? "try" : "tries"} left.`);
+      else if (err.code === "too_many") {
+        setUntil(Date.now() + (err.retryAfter || 60) * 1000);
+        setNow(Date.now());
+      } else if (err.status === 400 && err.error === "bad_format") setError("Enter a real date as DD/MM/YYYY.");
+      else setError(MESSAGES[err.code] || MESSAGES.server);
+    } finally {
+      setBusy(false);
     }
-    const count = attempts.count + 1;
-    const next = count >= MAX_ATTEMPTS ? { count: 0, until: Date.now() + LOCKOUT_MS } : { count, until: 0 };
-    writeAttempts(tool.id, next);
-    setAttempts(next);
-    setNow(Date.now());
-    setValue("");
-    setError(count >= MAX_ATTEMPTS ? "Too many tries." : `That date doesn't match. ${MAX_ATTEMPTS - count} ${MAX_ATTEMPTS - count === 1 ? "try" : "tries"} left.`);
   };
 
-  const secs = Math.ceil((attempts.until - now) / 1000);
+  const secs = Math.max(0, Math.ceil((until - now) / 1000));
+  const wait = secs >= 60 ? `${Math.ceil(secs / 60)} min` : `${secs}s`;
 
   return (
     <form className="gate" onSubmit={submit} noValidate>
       <div className="ico">{icons.lock}</div>
       <div>
         <h1 style={{ fontSize: 18 }}>{tool.name}</h1>
-        <p>Enter your date of birth to open this tool.</p>
+        <p>Enter your date of birth to open your tools.</p>
       </div>
       <label htmlFor="dob">
         Date of birth
@@ -79,7 +87,7 @@ export default function DobGate({ tool, onUnlock }) {
         />
       </label>
       <p className="err" id="dob-err" role="alert">
-        {lockedOut ? `Too many tries. Try again in ${secs}s.` : error}
+        {lockedOut ? `Too many tries. Try again in ${wait}.` : error}
       </p>
       <button className="btn primary" type="submit" disabled={lockedOut || busy}>
         {busy ? "Checking…" : "Open"}

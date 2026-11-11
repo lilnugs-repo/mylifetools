@@ -1,7 +1,8 @@
 // My Car Loan Tracker — everything specific to this loan lives here.
 export default {
+  id: "car-loan", // also the file name in Blob: my-tools/tools/car-loan.json
   title: "My Car Loan Tracker",
-  storageKey: "tools:car-loan:v1",
+  storageKey: "tools:car-loan:v1", // offline cache in the browser
   legacyKeys: ["loan-tracker-v1"], // data saved by the earlier standalone version
   currency: { symbol: "$", locale: "en-AU" },
   defaults: {
