@@ -25,7 +25,7 @@ Everything in `config.js` was copied from the car loan as a starting point and i
 When the real loan terms are known:
 1. Update `defaults` and `rules` in `config.js`.
 2. Remove the `PLACEHOLDER` comments.
-3. If you've already used the tool in a browser, the old figures are saved there. Change them under **Loan details** (or clear the `tools:home-loan:v1` key in the browser's storage) so the new defaults take effect.
+3. Once the tool has been opened and saved, its figures live in the Blob store (`my-tools/tools/home-loan.json`), so new defaults in `config.js` won't replace them. Change saved figures under **Loan details** in the app.
 
 ## Shared code
 

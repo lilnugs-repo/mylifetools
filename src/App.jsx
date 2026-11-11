@@ -3,27 +3,43 @@ import Home from "./components/Home.jsx";
 import DobGate from "./components/DobGate.jsx";
 import { icons } from "./components/icons.jsx";
 import { findTool } from "./tools/registry.js";
-import { isUnlocked, lockAll } from "./lib/lock.js";
+import { api } from "./lib/api.js";
 import { useHashRoute } from "./lib/useHashRoute.js";
 
 export default function App() {
   const route = useHashRoute();
   const tool = route ? findTool(route) : null;
-  const [unlockedId, setUnlockedId] = useState(null);
-  const unlocked = !!tool && (unlockedId === tool.id || isUnlocked(tool.id));
-  const setUnlocked = () => setUnlockedId(tool.id);
+  // "checking" until /api/session answers; one login unlocks every locked tool
+  const [auth, setAuth] = useState("checking");
+
+  useEffect(() => {
+    api
+      .session()
+      .then((r) => setAuth(r.authed ? "in" : "out"))
+      .catch(() => setAuth("out"));
+    const onLocked = () => setAuth("out");
+    window.addEventListener("mt:locked", onLocked);
+    return () => window.removeEventListener("mt:locked", onLocked);
+  }, []);
 
   useEffect(() => {
     document.title = tool ? `${tool.name} · My Tools` : "My Tools";
   }, [tool]);
 
-  // Unknown route → back to the directory
   useEffect(() => {
     if (route && !tool) window.location.hash = "#/";
   }, [route, tool]);
 
-  const needsGate = tool && tool.lockHash && !unlocked;
+  const needsGate = tool && tool.locked && auth !== "in";
   const Tool = tool?.component;
+
+  const lock = async () => {
+    try {
+      await api.logout();
+    } catch {}
+    setAuth("out");
+    window.location.hash = "#/";
+  };
 
   return (
     <>
@@ -37,23 +53,16 @@ export default function App() {
             <span className="brand-mark">S</span> My Tools
           </a>
         )}
-        {tool && tool.lockHash && unlocked && (
-          <button
-            className="btn"
-            type="button"
-            onClick={() => {
-              lockAll();
-              setUnlockedId(null);
-              window.location.hash = "#/";
-            }}
-          >
+        {auth === "in" && (
+          <button className="btn" type="button" onClick={lock}>
             Lock
           </button>
         )}
       </div>
 
       {!tool && <Home />}
-      {needsGate && <DobGate tool={tool} onUnlock={setUnlocked} />}
+      {needsGate && auth === "checking" && <div className="wrap loading">Checking your session…</div>}
+      {needsGate && auth === "out" && <DobGate tool={tool} onUnlock={() => setAuth("in")} />}
       {tool && !needsGate && (
         <Suspense fallback={<div className="wrap loading">Loading {tool.name}…</div>}>
           <Tool />
