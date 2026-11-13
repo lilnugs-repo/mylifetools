@@ -7,25 +7,24 @@
 - The currency is set once in `config.js` (`currency: { symbol: "Nrs. ", locale: "en-IN" }`). Every amount on screen goes through that, so don't hard-code a symbol anywhere else.
 - `en-IN` number formatting is used for lakh/crore grouping (`Nrs. 1,00,000.00`). Switch to `en-US` if you prefer `Nrs. 100,000.00`.
 
-## Figures are placeholders
+## Loan figures (from the bank statement)
 
-Everything in `config.js` was copied from the car loan as a starting point and is marked `PLACEHOLDER`:
+The figures in `config.js` were taken from the bank's payment statement covering EMIs up to 20 Dec 2025:
 
-| Setting | Placeholder value | Real value |
+| Setting | Value | How it was found |
 |---|---|---|
-| Loan amount | Nrs. 20,908 | _to fill in_ |
-| Interest rate | 10.41% p.a. | _to fill in_ |
-| Term | 60 months | _to fill in_ |
-| Monthly account fee | Nrs. 15 | _to fill in_ |
-| Start date | 1 Dec 2026 | _to fill in_ |
-| Admin fee on early payout | Nrs. 100 | _to fill in_ |
-| Early termination fee | Nrs. 750 − Nrs. 15/month, waived first/last 3 months | _to fill in_ |
-| Break cost | On (2% swap fall, 3.5% swap rate) | _confirm if it applies_ |
+| Loan amount | Nrs. 1,43,00,000 | Statement balance plus every principal payment adds up to exactly this |
+| Contracted rate and term | 13.60% over 192 months (16 years) | The only round combination that gives the EMI of Nrs. 1,83,103.86 to the paisa |
+| Start date | 20 Apr 2023 | First EMI 20 May 2023, then the 20th of each month. An interest-only charge of Nrs. 58,351.84 on 20 Apr 2023 (about 11 days from disbursement, around 9 Apr) isn't in the schedule |
+| Monthly account fee | Nrs. 0 | None on the statement |
+| Rate changes | 33 entries, 13.46% → 8.23% | Worked back from each EMI's interest (see below) |
+| Paid | EMIs 1–32 ticked | All collected on their due dates per the statement |
 
-When the real loan terms are known:
-1. Update `defaults` and `rules` in `config.js`.
-2. Remove the `PLACEHOLDER` comments.
-3. Once the tool has been opened and saved, its figures live in the Blob store (`my-tools/tools/home-loan.json`), so new defaults in `config.js` won't replace them. Change saved figures under **Loan details** in the app.
+With these, the tracker reproduces the statement's interest to within Nrs. 0.56 a month, and its balance after EMI 32 is Nrs. 1.61 off the bank's Nrs. 1,23,13,478.20.
+
+**Still placeholders** (copied from the car loan): the early-payout rules in `rules` (admin fee, early termination fee, break cost) and the swap rates. Break cost is an Australian fixed-rate concept and adds a large made-up amount to the payout estimate; set `breakCost: false` and fill in the bank's real prepayment charge.
+
+If saved data in the Blob store still holds the old placeholder loan (Nrs. 20,908 starting 1 Dec 2026), the app replaces it with these figures automatically. Otherwise saved figures win over `config.js`; change them under **Loan details**.
 
 ## Shared code
 
@@ -33,9 +32,10 @@ The tracker UI and maths are shared with the car loan (`src/tools/_shared/loan/`
 
 ## Variable interest rate
 
-The home loan has `variableRate: true` in `config.js`, so its rate can change over time.
+The bank charges a variable rate, and the tracker follows how it handles a change:
 
-- **Starting interest rate** under **Loan details** is the rate the loan opens on.
-- Add each change under **Interest rate changes** (date + new rate). A change applies to every repayment due after its date.
-- When the rate changes, the repayment is recalculated over the remaining term, so the loan still ends on time. The schedule shows a **Rate** column and highlights each repayment where the rate changed.
-- Changes are saved in the loan's settings as `rateChanges: [{ from: "YYYY-MM-DD", rate }]`, so they're included in the Blob store and in exported backups.
+- **The EMI stays the same.** A lower rate pays the loan off sooner and a higher one later (`onRateChange: "keep-payment"`). The header shows the expected length, e.g. "10 years 3 months (was 16 years)".
+- **Interest accrues daily**, balance × rate × days / 365 (`dayCount: "actual/365"`), so months with 31 days cost more than months with 30. A rate change applies from its date, so a month that spans a change is charged each rate for its own days.
+- **Contracted interest rate** and **Contracted term** under **Loan details** set the EMI only. The rates actually charged are the **Interest rate changes** list.
+- When the bank changes the rate, add the date and the new rate under **Interest rate changes**. To work out a rate from a statement: interest ÷ (balance before the payment × days in the period ÷ 365).
+- Changes are saved in the loan's settings as `rateChanges: [{ from: "YYYY-MM-DD", rate }]`, so they're stored in the Blob store and included in exported backups.

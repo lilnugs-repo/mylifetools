@@ -38,12 +38,28 @@ export function rateChanges(s) {
     .sort((a, b) => a.from - b.from);
 }
 
+const DAY = 864e5;
+const daysBetween = (a, b) => Math.round((b - a) / DAY);
+const MAX_ROWS = 1200; // 100 years: stops a schedule that would never clear
+
 /**
  * Amortisation schedule: one row per monthly repayment.
- * Variable rate: a rate change applies to every repayment due after its date, and the
- * repayment is recalculated so the remaining balance still clears by the end of the term.
+ *
+ * opts.dayCount
+ *   "monthly" (default): each period's interest is balance × rate / 12. A rate change
+ *     applies to every repayment due after its date.
+ *   "actual/365": interest accrues daily, balance × rate × days / 365, as most Nepali
+ *     banks charge. A rate change applies from its date, so a period that spans a change
+ *     is charged each rate for its own days.
+ * opts.onRateChange
+ *   "keep-term" (default): the repayment is recalculated so the loan still ends on time.
+ *   "keep-payment": the repayment stays the same and the loan ends sooner or later instead.
+ *
+ * The first repayment (from `rate` and `term`) is the contracted one either way.
  */
-export function buildSchedule(s) {
+export function buildSchedule(s, opts = {}) {
+  const daily = opts.dayCount === "actual/365";
+  const keepPayment = opts.onRateChange === "keep-payment";
   const n = s.term;
   const P = s.principal;
   const changes = rateChanges(s);
@@ -52,21 +68,37 @@ export function buildSchedule(s) {
   let pmt = instalment(P, rate / 100 / 12, n);
   let ci = 0;
   let bal = P;
+  let prevDue = start;
   const rows = [];
-  for (let i = 1; i <= n; i++) {
+  for (let i = 1; bal > 0.005 && i <= (keepPayment ? MAX_ROWS : n); i++) {
     const due = addMonths(start, i);
+    const before = rate;
     let changed = false;
-    while (ci < changes.length && changes[ci].from < due) {
-      changed = changed || changes[ci].rate !== rate;
-      rate = changes[ci++].rate;
+    let interest;
+    if (daily) {
+      // Charge each rate for the days it was in force between the last repayment and this one.
+      let acc = 0;
+      let from = prevDue;
+      while (ci < changes.length && changes[ci].from < due) {
+        const at = changes[ci].from > from ? changes[ci].from : from;
+        acc += rate * daysBetween(from, at);
+        from = at;
+        rate = changes[ci++].rate;
+      }
+      acc += rate * daysBetween(from, due);
+      interest = round2((bal * acc) / 100 / 365);
+    } else {
+      while (ci < changes.length && changes[ci].from < due) rate = changes[ci++].rate;
+      interest = round2((bal * rate) / 100 / 12);
     }
-    const r = rate / 100 / 12;
-    if (changed) pmt = instalment(bal, r, n - i + 1);
-    const interest = round2(bal * r);
+    changed = rate !== before;
+    if (changed && !keepPayment) pmt = instalment(bal, rate / 100 / 12, n - i + 1);
     let principal = round2(pmt - interest);
-    if (i === n) principal = round2(bal); // final payment clears rounding
+    const last = keepPayment ? principal >= bal || i === MAX_ROWS : i === n;
+    if (last) principal = round2(bal); // final payment clears what's left
     bal = round2(bal - principal);
     rows.push({ n: i, due, rate, rateChanged: changed, interest, principal, payment: round2(principal + interest), fee: s.fee, balance: bal });
+    prevDue = due;
   }
   return rows;
 }
@@ -99,14 +131,14 @@ export function payout(s, rows, paid, date, rules) {
   const open = balance > 0.005;
   const w = rules.waiverMonths ?? 0;
 
-  const etfWaived = months < w || months >= s.term - w;
+  const etfWaived = months < w || months >= rows.length - w;
   const etf = !open || etfWaived ? 0 : Math.max(0, rules.etfMax - rules.etfMonthlyReduction * months);
   const admin = open ? rules.adminFee : 0;
 
   const warlt = balance > 0 ? future.reduce((a, r, i) => a + (i + 1) * r.principal, 0) / balance / 12 : 0;
   const fall = Number(s.swapFall) || 0;
   const now = Number(s.swapNow) || 0;
-  const breakWaived = months >= s.term - w;
+  const breakWaived = months >= rows.length - w;
   const breakCost =
     !rules.breakCost || !open || breakWaived || fall <= 0 ? 0 : (balance * (fall / 100) * warlt) / Math.pow(1 + now / 100, warlt);
 
