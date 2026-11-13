@@ -13,6 +13,8 @@
   --warn: #a8434f;
   --warn-soft: #f7e3e2;
   --ok: #5b8a5c;
+  --soon: #8a6212;
+  --soon-soft: #f6ead0;
   --font-ui: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   /* Figures use the UI font with tabular numerals so columns still line up. */
@@ -24,13 +26,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
-    --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493;
+    --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
-  --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493;
+  --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320;
   color-scheme: dark;
 }
 
@@ -81,6 +83,9 @@ a.tool-tile:hover { border-color: var(--accent); transform: translateY(-1px) }
 .tool-tile .desc { font-size: 12px; color: var(--muted); line-height: 1.4 }
 .tool-tile .lock { position: absolute; top: 12px; right: 12px; color: var(--muted) }
 .tool-tile .lock svg { width: 14px; height: 14px }
+.tool-tile .tile-badge { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-top: auto }
+.tool-tile .tile-badge.warn { background: var(--warn-soft); color: var(--warn) }
+.tool-tile .tile-badge.soon { background: var(--soon-soft); color: var(--soon) }
 .tool-tile.soon { border-style: dashed; background: transparent; color: var(--muted) }
 .tool-tile.soon .ico { background: var(--sunk); color: var(--muted) }
 

@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { homeBadge } from "./utilities/deals.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -6,6 +7,8 @@ import { lazy } from "react";
  *   1. Create src/tools/<id>/<Component>.jsx (default export).
  *   2. Add an entry below. `locked: true` puts it behind the DoB login,
  *      which is checked on the server (UNLOCK_DOB env var).
+ *   3. Optional `badge()` returns { text, tone } to flag something on the tile
+ *      (tone: "warn" or "soon"), or null. It runs on the home screen, so keep it light.
  * Tools are lazy-loaded, so each one only downloads when it's opened.
  */
 export const tools = [
@@ -24,6 +27,15 @@ export const tools = [
     icon: "home",
     locked: true,
     component: lazy(() => import("./home-loan/HomeLoanTracker.jsx")),
+  },
+  {
+    id: "utilities",
+    name: "Household Utility Tracker",
+    description: "Providers, intro deals and when they end",
+    icon: "bolt",
+    locked: true,
+    badge: homeBadge,
+    component: lazy(() => import("./utilities/UtilityTracker.jsx")),
   },
 ];
 

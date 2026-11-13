@@ -1,0 +1,59 @@
+/* Household Utility Tracker. Shared tokens live in src/styles/base.css; tiles, forms,
+   chips and tables come from src/tools/_shared/loan/loan-tracker.css. */
+
+/* "Deal ended" banner */
+.ut-alert { background: var(--warn-soft); border: 1px solid var(--warn); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px }
+.ut-alert > div:first-child { display: flex; flex-direction: column; gap: 2px }
+.ut-alert strong { color: var(--warn); font-size: 15px }
+.ut-alert span { font-size: 14px }
+
+.ut-empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 12px }
+.ut-empty p { margin: 0; color: var(--muted) }
+.ut-empty .btn svg, .btn.primary svg { width: 16px; height: 16px }
+
+/* Service card */
+.ut-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px }
+.ut-card[data-state="active"] { border-left-color: var(--accent) }
+.ut-card[data-state="soon"] { border-left-color: var(--soon) }
+.ut-card[data-state="ended"] { border-left-color: var(--warn) }
+.ut-top { display: flex; gap: 12px; align-items: flex-start }
+.ut-top .ico { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none }
+.ut-top .ico svg { width: 20px; height: 20px }
+.ut-who { display: flex; flex-direction: column; min-width: 0; flex: 1 }
+.ut-type { font-size: 12px; font-weight: 700; color: var(--muted) }
+.ut-who b { font-size: 17px; line-height: 1.3; overflow-wrap: anywhere }
+.ut-plan { font-size: 13px; color: var(--muted) }
+.ut-top .chip { margin-top: 0; white-space: nowrap }
+.ut-chip-soon { background: var(--soon-soft); color: var(--soon) }
+.ut-chip-ended { background: var(--warn-soft); color: var(--warn) }
+.ut-chip-none, .ut-chip-upcoming { background: var(--sunk); color: var(--muted) }
+
+.ut-price { font-size: 14px; color: var(--muted) }
+.ut-price .ut-now { color: var(--fg); font-size: 18px; font-weight: 700 }
+.ut-price .ut-was { text-decoration: line-through }
+.ut-bar { height: 8px }
+.ut-card[data-state="soon"] .ut-bar i { background: var(--soon) }
+.ut-card[data-state="ended"] .ut-bar i { background: var(--warn) }
+
+.ut-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted) }
+.ut-meta b { color: var(--fg) }
+.ut-meta a { color: var(--accent); font-weight: 600; text-decoration: none }
+.ut-meta a:hover { text-decoration: underline }
+.ut-notes { margin: 0; font-size: 13px; background: var(--bg); border-radius: 8px; padding: 8px 10px; white-space: pre-wrap }
+.btn.small svg { width: 14px; height: 14px }
+.btn[disabled] { opacity: .5; cursor: default }
+
+/* Add / edit form */
+.ut-form .full-row { grid-column: 1 / -1 }
+.ut-form h2 { color: var(--fg) }
+.ut-form .opt { font-weight: 400 }
+.ut-form textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--fg); resize: vertical }
+.ut-err { color: var(--warn); font-weight: 600 }
+
+.ut-sub { font-size: 11px; color: var(--muted) }
+td a { color: var(--accent); text-decoration: none; font-weight: 600 }
+
+@media (max-width: 520px) {
+  .ut-top { flex-wrap: wrap }
+  .ut-top .chip { order: 3 }
+}

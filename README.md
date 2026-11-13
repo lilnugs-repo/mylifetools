@@ -5,6 +5,7 @@ A lightweight React app (Vite) holding a directory of personal tools, deployed o
 **Tools**
 1. **My Car Loan Tracker** (locked, $): tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel for the repayment due and payout figure on any date.
 2. **My Home Loan Tracker** (locked, **always Nrs.**): same tracker; figures are placeholders for now. See `src/tools/home-loan/NOTES.md`.
+3. **Household Utility Tracker** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
 
 ## How it fits together
 
@@ -13,8 +14,9 @@ Browser (React)                Vercel Functions (/api)            Private Blob s
 ───────────────                ───────────────────────            ──────────────────
 DoB screen ── POST /api/unlock ─▶ checks UNLOCK_DOB,               _system/unlock-attempts.json
                                   sets signed HttpOnly cookie
-Loan tracker ─ GET/PUT /api/state?tool=… ─▶ checks cookie ──────▶  tools/car-loan.json
+Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ──────▶  tools/car-loan.json
                                                                    tools/home-loan.json
+                                                                   tools/utilities.json
 localStorage: offline cache only
 ```
 
@@ -49,6 +51,8 @@ my-tools/
     ├── styles/base.css          # shared tokens + shell, tiles, gate
     ├── lib/
     │   ├── api.js               # client for /api
+    │   ├── useCloudState.js     # sync a tool's state to /api/state + offline cache
+    │   ├── theme.js             # light/dark toggle
     │   └── useHashRoute.js      # tiny hash router
     ├── components/
     │   ├── Home.jsx             # tile directory
@@ -58,11 +62,11 @@ my-tools/
         ├── registry.js          # list of tools → tiles + routes
         ├── _shared/loan/        # shared by every loan tracker
         │   ├── LoanTracker.jsx  # UI, driven by a config
-        │   ├── useCloudState.js # sync to /api/state + offline cache
         │   ├── loan.js          # maths: schedule, totals, payout, date projection
         │   └── loan-tracker.css
         ├── car-loan/            # CarLoanTracker.jsx + config.js ($)
-        └── home-loan/           # HomeLoanTracker.jsx + config.js (Nrs.) + NOTES.md
+        ├── home-loan/           # HomeLoanTracker.jsx + config.js (Nrs.) + NOTES.md
+        └── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
 ```
 
 ## Environment variables
@@ -100,6 +104,6 @@ vercel dev           # app + API at http://localhost:3000
 
 1. Create `src/tools/<id>/<Name>.jsx` with a default-exported component (wrap content in `<div className="wrap">`).
 2. Add it to `src/tools/registry.js` (`locked: true` to put it behind the login).
-3. To save data, call `api.getState("<id>")` / `api.putState("<id>", data)` from `src/lib/api.js`, or reuse `useCloudState`. Each tool gets its own file in Blob.
+3. To save data, call `api.getState("<id>")` / `api.putState("<id>", data)` from `src/lib/api.js`, or reuse `useCloudState` from `src/lib/` (pass `shape` to validate saved data and `empty` for the starting state). Each tool gets its own file in Blob.
 
 For another loan, copy a loan folder, change its `config.js` (new `id`!) and add it to the registry.

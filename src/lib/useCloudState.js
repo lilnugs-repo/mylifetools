@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../../lib/api.js";
+import { api } from "./api.js";
 
 // Keeps a tool's state in the private Blob store (via /api/state), with a
 // localStorage copy as an offline cache.
+//   - `shape(saved)` turns saved data into the tool's state, or returns null
+//     if it isn't valid; `empty` is the state before anything is saved.
 //   - On open: the server copy wins, unless this device has edits that never
 //     reached the server (pendingSync), in which case those are uploaded.
 //   - First time on the server: this device's existing local data is uploaded.
@@ -17,11 +19,12 @@ const STATUS_TEXT = {
   error: "Couldn't save · kept on this device",
 };
 
-function readCache(keys, defaults) {
+export function readCache(keys, shape) {
   try {
     for (const k of keys) {
       const v = JSON.parse(localStorage.getItem(k));
-      if (v && v.settings) return { state: { settings: { ...defaults, ...v.settings }, paid: v.paid || {} }, pending: !!v.pendingSync };
+      const state = v && shape(v);
+      if (state) return { state, pending: !!v.pendingSync };
     }
   } catch {}
   return null;
@@ -33,9 +36,9 @@ function writeCache(key, state, pending) {
   } catch {}
 }
 
-export function useCloudState({ id, storageKey, legacyKeys = [], defaults }) {
-  const cached = useRef(readCache([storageKey, ...legacyKeys], defaults));
-  const [state, setState] = useState(() => cached.current?.state ?? { settings: { ...defaults }, paid: {} });
+export function useCloudState({ id, storageKey, legacyKeys = [], shape, empty }) {
+  const cached = useRef(readCache([storageKey, ...legacyKeys], shape));
+  const [state, setState] = useState(() => cached.current?.state ?? empty);
   const [status, setStatus] = useState("loading");
 
   const ready = useRef(false); // server has answered
@@ -82,8 +85,8 @@ export function useCloudState({ id, storageKey, legacyKeys = [], defaults }) {
         ready.current = true;
         const local = cached.current;
         if (local?.pending) return push(local.state);
-        if (r.data?.settings) {
-          const s = { settings: { ...defaults, ...r.data.settings }, paid: r.data.paid || {} };
+        const s = r.data && shape(r.data);
+        if (s) {
           fromServer.current = true;
           setState(s);
           writeCache(storageKey, s, false);

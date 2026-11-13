@@ -27,6 +27,40 @@ export const icons = {
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   ),
+  bolt: (
+    <svg {...base}>
+      <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" />
+    </svg>
+  ),
+  flame: (
+    <svg {...base}>
+      <path d="M12 22c4 0 7-2.7 7-7 0-4.5-4-7.5-5-12-2 2.5-3 4.5-3 7-1.2-.8-2-2-2.2-3.5C6.6 8.6 5 11.3 5 15c0 4.3 3 7 7 7z" />
+    </svg>
+  ),
+  wifi: (
+    <svg {...base}>
+      <path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 14 0M8.5 16.3a5 5 0 0 1 7 0" />
+      <circle cx="12" cy="20" r="0.6" fill="currentColor" />
+    </svg>
+  ),
+  phone: (
+    <svg {...base}>
+      <rect x="6" y="2" width="12" height="20" rx="2.5" />
+      <path d="M11 18h2" />
+    </svg>
+  ),
+  tag: (
+    <svg {...base}>
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9z" />
+      <circle cx="8" cy="8" r="1.5" />
+    </svg>
+  ),
+  calendar: (
+    <svg {...base}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  ),
   sun: (
     <svg {...base} width="16" height="16">
       <circle cx="12" cy="12" r="4" />

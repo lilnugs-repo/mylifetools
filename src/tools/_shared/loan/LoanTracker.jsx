@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addMonths, buildSchedule, summarise, payout, projectToDate, parseISO, toISO } from "./loan.js";
-import { useCloudState } from "./useCloudState.js";
+import { useCloudState } from "../../../lib/useCloudState.js";
 import "./loan-tracker.css";
 
 /**
@@ -14,7 +14,14 @@ export default function LoanTracker({ config }) {
   const money = useMemo(() => makeMoney(currency), [currency]);
   const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 
-  const { state, setState, status, statusText } = useCloudState({ id, storageKey, legacyKeys, defaults });
+  const shape = useMemo(() => (v) => (v.settings ? { settings: { ...defaults, ...v.settings }, paid: v.paid || {} } : null), [defaults]);
+  const { state, setState, status, statusText } = useCloudState({
+    id,
+    storageKey,
+    legacyKeys,
+    shape,
+    empty: { settings: { ...defaults }, paid: {} },
+  });
   const [showSettings, setShowSettings] = useState(false);
   const today = useMemo(startOfToday, []);
   const { settings: s, paid } = state;
