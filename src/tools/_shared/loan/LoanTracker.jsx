@@ -683,7 +683,7 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
       setState({ settings: { ...defaults, ...v.settings }, paid: v.paid || {} });
       setMsg("Backup restored.");
     } catch {
-      setMsg("That file isn't a loan tracker backup.");
+      setMsg("That file isn't a loan backup.");
     }
   };
 

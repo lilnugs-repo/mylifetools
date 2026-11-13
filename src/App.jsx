@@ -25,7 +25,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.title = tool ? `${tool.name} · My Tools` : "My Tools";
+    document.title = tool ? `${tool.name} · My Life Tools` : "My Life Tools";
   }, [tool]);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function App() {
           </a>
         ) : (
           <a className="brand" href="#/">
-            <span className="brand-mark">S</span> My Tools
+            <span className="brand-mark">S</span> My Life Tools
           </a>
         )}
         <div className="head-actions">

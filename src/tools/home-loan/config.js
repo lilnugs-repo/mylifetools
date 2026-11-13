@@ -1,4 +1,4 @@
-// My Home Loan Tracker — everything specific to this loan lives here.
+// My Home Loan — everything specific to this loan lives here.
 //
 // CURRENCY RULE: this tool always shows Nepalese rupees as "Nrs." — never "$".
 // See ./NOTES.md before changing anything below.
@@ -18,7 +18,7 @@ const paidFromStatement = Object.fromEntries(
 
 export default {
   id: "home-loan", // also the file name in Blob: my-tools/tools/home-loan.json
-  title: "My Home Loan Tracker",
+  title: "My Home Loan",
   storageKey: "tools:home-loan:v1", // offline cache in the browser
   currency: { symbol: "Nrs. ", locale: "en-IN" }, // en-IN gives lakh grouping, e.g. Nrs. 1,00,000.00
   defaults: {

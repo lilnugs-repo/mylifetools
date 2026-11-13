@@ -1,12 +1,13 @@
-# My Tools
+# My Life Tools
 
 A lightweight React app (Vite) holding a directory of personal tools, deployed on Vercel. The home screen is a grid of tiles; each tile opens a tool at its own URL (`#/<tool-id>`). Locked tools need a date-of-birth login, checked on the server. Data is saved to a **private Vercel Blob store**, so it syncs across devices.
 
 **Tools**
-1. **My Car Loan Tracker** (locked, $): tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel for the repayment due and payout figure on any date.
-2. **My Home Loan Tracker** (locked, **always Nrs.**): same tracker; figures are placeholders for now. See `src/tools/home-loan/NOTES.md`.
-3. **Household Utility Tracker** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
+1. **My Car Loan** (locked, $): tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel for the repayment due and payout figure on any date.
+2. **My Home Loan** (locked, **always Nrs.**): the same loan screen, set up from the bank statement. Variable rate with a fixed EMI (a rate change moves the end date), daily interest, the current rate and expected pay-off date, and a "Pay-off goal" panel. See `src/tools/home-loan/NOTES.md`.
+3. **Household Utilities** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
 4. **Big Buys & Warranties** (locked, $): a record of big purchases across 16 categories (phones, computers, appliances, furniture, vehicles, solar…), with date bought, store, price, serial number, manufacturer and extended warranty, and where the warranty and receipt are kept (email, cloud drive, paper folder…, plus a link). Shows how long each item is covered, flags warranties ending in the next 60 days (banner and home tile badge), offers a calendar reminder 30 days before cover ends, and keeps items you've sold or replaced. Search, filter by category and sort.
+5. **My Subscriptions** (locked, $): one place for everything you pay for on repeat (streaming, music, apps, cloud storage, gym…). Each has a price and billing cycle (weekly to yearly), the next payment date (rolled forward automatically), free trials, what it's paid with, the account, a manage/cancel link and "still worth it?". Shows the total per month and per year, payments in the next 30 days, spend by category, what cancelling the ones you're unsure about would save, a banner for trials ending within 7 days and big (3-monthly or longer) renewals within 14 days (also a home tile badge), calendar reminders, and pause / cancel with a record of cancelled ones.
 
 ## How it fits together
 
@@ -19,6 +20,7 @@ Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ───�
                                                                    tools/home-loan.json
                                                                    tools/utilities.json
                                                                    tools/big-buys.json
+                                                                   tools/subscriptions.json
 localStorage: offline cache only
 ```
 
@@ -31,7 +33,7 @@ localStorage: offline cache only
 ## Project structure
 
 ```
-my-tools/
+my-tools/                        # folder and Blob prefix keep the original name
 ├── .env.local                   # your secrets (git-ignored; values left blank)
 ├── .env.example                 # same names, committed as a template
 ├── api/                         # Vercel Functions
@@ -63,14 +65,15 @@ my-tools/
     │   └── icons.jsx
     └── tools/
         ├── registry.js          # list of tools → tiles + routes
-        ├── _shared/loan/        # shared by every loan tracker
+        ├── _shared/loan/        # shared by both loans
         │   ├── LoanTracker.jsx  # UI, driven by a config
         │   ├── loan.js          # maths: schedule, totals, payout, date projection
         │   └── loan-tracker.css
         ├── car-loan/            # CarLoanTracker.jsx + config.js ($)
         ├── home-loan/           # HomeLoanTracker.jsx + config.js (Nrs.) + NOTES.md
         ├── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
-        └── big-buys/            # BigBuys.jsx, purchases.js (categories, warranty status, badge), big-buys.css
+        ├── big-buys/            # BigBuys.jsx, purchases.js (categories, warranty status, badge), big-buys.css
+        └── subscriptions/       # Subscriptions.jsx, subs.js (billing cycles, next payment, totals, badge), subscriptions.css
 ```
 
 ## Environment variables

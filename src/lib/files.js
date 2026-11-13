@@ -36,7 +36,7 @@ export function calendarEvent({ uid, date, title, description = "", url, daysBef
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//My Tools//EN",
+    "PRODID:-//My Life Tools//EN",
     "BEGIN:VEVENT",
     `UID:${uid}-${ymd(date)}@my-tools`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")}`,

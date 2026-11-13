@@ -1,4 +1,4 @@
-# My Home Loan Tracker: notes
+# My Home Loan: notes
 
 ## Currency: always Nrs.
 
@@ -20,7 +20,7 @@ The figures in `config.js` were taken from the bank's payment statement covering
 | Rate changes | 33 entries, 13.46% → 8.23% | Worked back from each EMI's interest (see below) |
 | Paid | EMIs 1–32 ticked | All collected on their due dates per the statement |
 
-With these, the tracker reproduces the statement's interest to within Nrs. 0.56 a month, and its balance after EMI 32 is Nrs. 1.61 off the bank's Nrs. 1,23,13,478.20.
+With these, the app reproduces the statement's interest to within Nrs. 0.56 a month, and its balance after EMI 32 is Nrs. 1.61 off the bank's Nrs. 1,23,13,478.20.
 
 **Still placeholders** (copied from the car loan): the admin fee and early termination fee in `rules`. Replace them with the bank's real prepayment charge.
 
@@ -30,11 +30,11 @@ If saved data in the Blob store still holds the old placeholder loan (Nrs. 20,90
 
 ## Shared code
 
-The tracker UI and maths are shared with the car loan (`src/tools/_shared/loan/`). Change fee rules per loan in each tool's `config.js`, not in the shared code.
+The loan screen and maths are shared with the car loan (`src/tools/_shared/loan/`). Change fee rules per loan in each tool's `config.js`, not in the shared code.
 
 ## Variable interest rate
 
-The bank charges a variable rate, and the tracker follows how it handles a change:
+The bank charges a variable rate, and the app follows how it handles a change:
 
 - **The EMI stays the same.** A lower rate pays the loan off sooner and a higher one later (`onRateChange: "keep-payment"`). The header shows the expected length, e.g. "10 years 3 months (was 16 years)".
 - **Interest accrues daily**, balance × rate × days / 365 (`dayCount: "actual/365"`), so months with 31 days cost more than months with 30. A rate change applies from its date, so a month that spans a change is charged each rate for its own days.

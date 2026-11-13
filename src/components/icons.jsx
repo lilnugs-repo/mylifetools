@@ -125,6 +125,56 @@ export const icons = {
       <path d="M6 3h12l3 6-9 12L3 9l3-6zM3 9h18M9 3l3 18M15 3l-3 18" />
     </svg>
   ),
+  repeat: (
+    <svg {...base}>
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11V10a4 4 0 0 1 4-4h14" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+    </svg>
+  ),
+  play: (
+    <svg {...base}>
+      <rect x="2" y="4" width="20" height="16" rx="3" />
+      <path d="M10 9l5 3-5 3V9z" />
+    </svg>
+  ),
+  grid: (
+    <svg {...base}>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  ),
+  cloud: (
+    <svg {...base}>
+      <path d="M7 18a5 5 0 0 1-.9-9.9A6 6 0 0 1 17.7 9 4.5 4.5 0 0 1 17.5 18H7z" />
+    </svg>
+  ),
+  news: (
+    <svg {...base}>
+      <path d="M4 4h13v15a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V4z" />
+      <path d="M17 8h3v11a2 2 0 0 1-2 2M8 8h5M8 12h5M8 16h3" />
+    </svg>
+  ),
+  gamepad: (
+    <svg {...base}>
+      <path d="M6 7h12a4 4 0 0 1 4 4v1.5a3.5 3.5 0 0 1-6.3 2.1L15 14H9l-.7.6A3.5 3.5 0 0 1 2 12.5V11a4 4 0 0 1 4-4z" />
+      <path d="M7 10v3M5.5 11.5h3M15.5 11h.01M17.5 12.5h.01" />
+    </svg>
+  ),
+  bag: (
+    <svg {...base}>
+      <path d="M5 8h14l-1 13H6L5 8z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  ),
+  book: (
+    <svg {...base}>
+      <path d="M4 19.5V5a2 2 0 0 1 2-2h14v15H6.5A2.5 2.5 0 0 0 4 20.5 2.5 2.5 0 0 0 6.5 23H20v-5" />
+    </svg>
+  ),
   calendar: (
     <svg {...base}>
       <rect x="3" y="5" width="18" height="16" rx="2" />

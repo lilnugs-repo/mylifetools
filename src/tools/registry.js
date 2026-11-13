@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { homeBadge } from "./utilities/deals.js";
 import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
+import { homeBadge as subsBadge } from "./subscriptions/subs.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -15,7 +16,7 @@ import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
 export const tools = [
   {
     id: "car-loan",
-    name: "My Car Loan Tracker",
+    name: "My Car Loan",
     description: "Repayments, interest paid and payout estimate",
     icon: "car",
     locked: true,
@@ -23,7 +24,7 @@ export const tools = [
   },
   {
     id: "home-loan",
-    name: "My Home Loan Tracker",
+    name: "My Home Loan",
     description: "Repayments and payout in Nrs.",
     icon: "home",
     locked: true,
@@ -31,7 +32,7 @@ export const tools = [
   },
   {
     id: "utilities",
-    name: "Household Utility Tracker",
+    name: "Household Utilities",
     description: "Providers, intro deals and when they end",
     icon: "bolt",
     locked: true,
@@ -46,6 +47,15 @@ export const tools = [
     locked: true,
     badge: bigBuysBadge,
     component: lazy(() => import("./big-buys/BigBuys.jsx")),
+  },
+  {
+    id: "subscriptions",
+    name: "My Subscriptions",
+    description: "What you're subscribed to, what it costs and when it renews",
+    icon: "repeat",
+    locked: true,
+    badge: subsBadge,
+    component: lazy(() => import("./subscriptions/Subscriptions.jsx")),
   },
 ];
 

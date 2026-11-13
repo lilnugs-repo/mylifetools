@@ -24,7 +24,7 @@ import "../_shared/loan/loan-tracker.css"; // cards, tiles, forms and tables sha
 import "./utilities.css";
 
 /**
- * Household Utility Tracker: current providers for electricity, gas, internet,
+ * Household Utilities: current providers for electricity, gas, internet,
  * mobile and anything else on an intro deal, when each deal ends, and a record
  * of past providers. Saved to the private Blob store as tools/utilities.json.
  */
@@ -117,7 +117,7 @@ export default function UtilityTracker() {
     <div className="wrap">
       <header className="loan-head">
         <div>
-          <h1>Household Utility Tracker</h1>
+          <h1>Household Utilities</h1>
           <div className="sub">
             {state.services.length ? `${plural(state.services.length, "service")} · intro deals and when they end` : "Your providers and when their intro deals end"}
           </div>
