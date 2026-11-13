@@ -19,6 +19,14 @@
 .settings { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px }
 .settings label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted) }
 .settings input, .settings select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; color: var(--fg); min-width: 0 }
+.rate-changes { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px }
+.rate-changes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px }
+.rate-changes li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.rate-changes li span { flex: 1; min-width: 0 }
+.rate-add { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap }
+.rate-add label { flex: 1 1 140px }
+.btn:disabled { opacity: .5; cursor: not-allowed }
+td.rate-changed { color: var(--accent); font-weight: 700 }
 .settings .full { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted) }
 
 .now { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 16px }

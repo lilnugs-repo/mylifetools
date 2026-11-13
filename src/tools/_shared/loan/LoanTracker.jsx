@@ -5,11 +5,12 @@ import "./loan-tracker.css";
 
 /**
  * Generic loan tracker. Each tool passes a config (see src/tools/<tool>/config.js):
- *   id, title, storageKey, legacyKeys?, currency: { symbol, locale }, defaults, rules, termOptions
+ *   id, title, storageKey, legacyKeys?, currency: { symbol, locale }, defaults, rules, termOptions, variableRate?
+ * variableRate: true lets the rate change over time (settings.rateChanges = [{ from, rate }]).
  * State is saved to the private Blob store via /api/state, cached locally for offline use.
  */
 export default function LoanTracker({ config }) {
-  const { id, title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions } = config;
+  const { id, title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions, variableRate = false } = config;
 
   const money = useMemo(() => makeMoney(currency), [currency]);
   const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
@@ -33,6 +34,7 @@ export default function LoanTracker({ config }) {
   const paidCount = rows.filter((r) => paid[r.n]).length;
   const overdue = rows.filter((r) => !paid[r.n] && r.due < today);
   const pct = (totals.principalPaid / s.principal) * 100;
+  const currentRate = (next ?? rows[rows.length - 1])?.rate ?? s.rate;
 
   const togglePaid = (n, on) =>
     setState((st) => {
@@ -56,7 +58,7 @@ export default function LoanTracker({ config }) {
         <div>
           <h1>{title}</h1>
           <div className="sub num">
-            {money(s.principal)} · {s.rate}% p.a. · {fmtYears(s.term)} · {money(s.fee)}/mo fee
+            {money(s.principal)} · {currentRate}% p.a.{variableRate ? " variable" : ""} · {fmtYears(s.term)} · {money(s.fee)}/mo fee
           </div>
         </div>
         <div className="head-actions">
@@ -80,10 +82,11 @@ export default function LoanTracker({ config }) {
           termOptions={termOptions}
           rules={rules}
           storageKey={storageKey}
+          variableRate={variableRate}
         />
       )}
 
-      <NowCard s={s} next={next} overdue={overdue} today={today} money={money} fmtDate={fmtDate} onPay={() => next && togglePaid(next.n, true)} />
+      <NowCard s={s} variableRate={variableRate} next={next} overdue={overdue} today={today} money={money} fmtDate={fmtDate} onPay={() => next && togglePaid(next.n, true)} />
 
       <div className="card-progress">
         <div className="bar" role="progressbar" aria-label="Principal repaid" aria-valuenow={Math.round(pct)}>
@@ -109,7 +112,7 @@ export default function LoanTracker({ config }) {
 
       <section className="stack">
         <h2>Repayment schedule</h2>
-        <Schedule rows={rows} paid={paid} next={next} today={today} money={money} fmtDate={fmtDate} onToggle={togglePaid} />
+        <Schedule rows={rows} variableRate={variableRate} paid={paid} next={next} today={today} money={money} fmtDate={fmtDate} onToggle={togglePaid} />
       </section>
     </div>
   );
@@ -135,7 +138,7 @@ function startOfToday() {
 
 /* ---------- sections ---------- */
 
-function NowCard({ s, next, overdue, today, money, fmtDate, onPay }) {
+function NowCard({ s, variableRate, next, overdue, today, money, fmtDate, onPay }) {
   if (!next) {
     return (
       <section className="now">
@@ -164,7 +167,8 @@ function NowCard({ s, next, overdue, today, money, fmtDate, onPay }) {
           <div className="cycle">Due {fmtDate(next.due)}</div>
           <div className="amt num">{money(next.payment + next.fee)}</div>
           <div className="split num">
-            {money(next.principal)} principal · {money(next.interest)} interest · {money(next.fee)} fee
+            {money(next.principal)} principal · {money(next.interest)} interest{variableRate ? ` at ${next.rate}%` : ""} ·{" "}
+            {money(next.fee)} fee
           </div>
         </div>
       </div>
@@ -295,19 +299,19 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey }) {
   );
 }
 
-function Schedule({ rows, paid, next, today, money, fmtDate, onToggle }) {
+function Schedule({ rows, variableRate, paid, next, today, money, fmtDate, onToggle }) {
   const years = [];
   for (let i = 0; i < rows.length; i += 12) years.push(rows.slice(i, i + 12));
   return (
     <div className="stack">
       {years.map((yr, idx) => (
-        <YearGroup key={idx} year={idx + 1} rows={yr} paid={paid} next={next} today={today} money={money} fmtDate={fmtDate} onToggle={onToggle} />
+        <YearGroup key={idx} year={idx + 1} rows={yr} variableRate={variableRate} paid={paid} next={next} today={today} money={money} fmtDate={fmtDate} onToggle={onToggle} />
       ))}
     </div>
   );
 }
 
-function YearGroup({ year, rows, paid, next, today, money, fmtDate, onToggle }) {
+function YearGroup({ year, rows, variableRate, paid, next, today, money, fmtDate, onToggle }) {
   const hasCurrent = !!next && rows.includes(next);
   const [open, setOpen] = useState(hasCurrent);
   const yPaid = rows.filter((r) => paid[r.n]).length;
@@ -325,6 +329,7 @@ function YearGroup({ year, rows, paid, next, today, money, fmtDate, onToggle }) 
             <tr>
               <th>#</th>
               <th>Due</th>
+              {variableRate && <th>Rate</th>}
               <th>Principal</th>
               <th>Interest</th>
               <th>Fee</th>
@@ -342,6 +347,7 @@ function YearGroup({ year, rows, paid, next, today, money, fmtDate, onToggle }) 
                 <tr key={r.n} className={cls}>
                   <td>{r.n}</td>
                   <td>{fmtDate(r.due)}</td>
+                  {variableRate && <td className={r.rateChanged ? "rate-changed" : undefined}>{r.rate}%</td>}
                   <td>{money(r.principal)}</td>
                   <td className="int">{money(r.interest)}</td>
                   <td>{money(r.fee)}</td>
@@ -366,7 +372,7 @@ function YearGroup({ year, rows, paid, next, today, money, fmtDate, onToggle }) 
   );
 }
 
-function Settings({ settings, onChange, state, setState, defaults, currency, termOptions, rules, storageKey }) {
+function Settings({ settings, onChange, state, setState, defaults, currency, termOptions, rules, storageKey, variableRate }) {
   const [armed, setArmed] = useState(false);
   const fileRef = useRef(null);
   const [msg, setMsg] = useState("");
@@ -374,7 +380,7 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
 
   const fields = [
     { k: "principal", label: `Loan amount (${cur})`, type: "number", step: "0.01", min: 1 },
-    { k: "rate", label: "Interest rate (% p.a.)", type: "number", step: "0.01", min: 0 },
+    { k: "rate", label: variableRate ? "Starting interest rate (% p.a.)" : "Interest rate (% p.a.)", type: "number", step: "0.01", min: 0 },
     { k: "term", label: "Term", type: "select" },
     { k: "fee", label: `Monthly account fee (${cur})`, type: "number", step: "0.01", min: 0 },
     { k: "start", label: "Loan start date", type: "date" },
@@ -456,6 +462,7 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
           )}
         </label>
       ))}
+      {variableRate && <RateChanges changes={settings.rateChanges || []} start={settings.start} onChange={(v) => onChange("rateChanges", v)} />}
       <div className="full">
         <span>First repayment falls one month after the start date. {msg}</span>
         <div className="head-actions">
@@ -472,5 +479,66 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
         </div>
       </div>
     </form>
+  );
+}
+
+/** Variable-rate history: each change applies to repayments due after its date. */
+function RateChanges({ changes, start, onChange }) {
+  const [from, setFrom] = useState("");
+  const [rate, setRate] = useState("");
+  const sorted = [...changes].sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
+  const rateOk = rate !== "" && Number.isFinite(Number(rate)) && Number(rate) >= 0;
+  const canAdd = !!from && from >= start && rateOk;
+
+  const add = () => {
+    if (!canAdd) return;
+    onChange([...changes.filter((c) => c.from !== from), { from, rate: Number(rate) }]);
+    setFrom("");
+    setRate("");
+  };
+  const remove = (c) => onChange(changes.filter((x) => x !== c));
+
+  return (
+    <div className="rate-changes">
+      <span className="k-strong">Interest rate changes</span>
+      {sorted.length === 0 && <p className="note">No changes yet: the starting rate applies for the whole term.</p>}
+      {sorted.length > 0 && (
+        <ul className="num">
+          {sorted.map((c) => (
+            <li key={c.from}>
+              <span>From {parseISO(c.from).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
+              <b>{c.rate}% p.a.</b>
+              <button className="btn small" type="button" onClick={() => remove(c)} aria-label={`Remove rate change from ${c.from}`}>
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="rate-add">
+        <label>
+          Changes on
+          <input id="rc-from" type="date" min={start} value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label>
+          New rate (% p.a.)
+          <input
+            id="rc-rate"
+            type="number"
+            step="0.01"
+            min={0}
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+          />
+        </label>
+        <button className="btn" type="button" onClick={add} disabled={!canAdd}>
+          Add change
+        </button>
+      </div>
+      <p className="note">
+        A new rate applies to repayments due after its date. The repayment is recalculated so the loan still finishes on time.
+      </p>
+    </div>
   );
 }

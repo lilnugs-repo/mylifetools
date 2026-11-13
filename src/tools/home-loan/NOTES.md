@@ -30,3 +30,12 @@ When the real loan terms are known:
 ## Shared code
 
 The tracker UI and maths are shared with the car loan (`src/tools/_shared/loan/`). Change fee rules per loan in each tool's `config.js`, not in the shared code.
+
+## Variable interest rate
+
+The home loan has `variableRate: true` in `config.js`, so its rate can change over time.
+
+- **Starting interest rate** under **Loan details** is the rate the loan opens on.
+- Add each change under **Interest rate changes** (date + new rate). A change applies to every repayment due after its date.
+- When the rate changes, the repayment is recalculated over the remaining term, so the loan still ends on time. The schedule shows a **Rate** column and highlights each repayment where the rate changed.
+- Changes are saved in the loan's settings as `rateChanges: [{ from: "YYYY-MM-DD", rate }]`, so they're included in the Blob store and in exported backups.

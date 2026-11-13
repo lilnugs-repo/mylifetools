@@ -12,7 +12,8 @@ export default {
   currency: { symbol: "Nrs. ", locale: "en-IN" }, // en-IN gives lakh grouping, e.g. Nrs. 1,00,000.00
   defaults: {
     principal: 20908, // PLACEHOLDER
-    rate: 10.41, // PLACEHOLDER % p.a.
+    rate: 10.41, // PLACEHOLDER starting % p.a.
+    rateChanges: [], // variable rate: [{ from: "YYYY-MM-DD", rate: 9.5 }] — edit under Loan details
     term: 60, // PLACEHOLDER months
     fee: 15, // PLACEHOLDER monthly account fee
     start: "2026-12-01", // PLACEHOLDER loan start date
@@ -26,5 +27,6 @@ export default {
     waiverMonths: 3, // PLACEHOLDER
     breakCost: true, // PLACEHOLDER: set false if the home loan has no break cost
   },
+  variableRate: true, // the rate can change; each change re-works the repayment over the remaining term
   termOptions: [36, 48, 60, 120, 180, 240, 300, 360],
 };

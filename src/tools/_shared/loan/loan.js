@@ -25,21 +25,48 @@ export function fullMonthsBetween(a, b) {
   return Math.max(0, m);
 }
 
-/** Amortisation schedule: one row per monthly repayment. */
+const instalment = (P, r, n) => round2(r === 0 ? P / n : (P * r) / (1 - Math.pow(1 + r, -n)));
+
+/**
+ * Variable-rate changes, valid and sorted by date: [{ from: Date, rate: % p.a. }].
+ * Stored in settings as s.rateChanges = [{ from: "YYYY-MM-DD", rate }].
+ */
+export function rateChanges(s) {
+  return (s.rateChanges || [])
+    .filter((c) => c && c.from && c.rate !== "" && Number.isFinite(Number(c.rate)) && Number(c.rate) >= 0)
+    .map((c) => ({ from: parseISO(c.from), rate: Number(c.rate) }))
+    .sort((a, b) => a.from - b.from);
+}
+
+/**
+ * Amortisation schedule: one row per monthly repayment.
+ * Variable rate: a rate change applies to every repayment due after its date, and the
+ * repayment is recalculated so the remaining balance still clears by the end of the term.
+ */
 export function buildSchedule(s) {
-  const r = s.rate / 100 / 12;
   const n = s.term;
   const P = s.principal;
-  const pmt = round2(r === 0 ? P / n : (P * r) / (1 - Math.pow(1 + r, -n)));
+  const changes = rateChanges(s);
   const start = parseISO(s.start);
+  let rate = Number(s.rate);
+  let pmt = instalment(P, rate / 100 / 12, n);
+  let ci = 0;
   let bal = P;
   const rows = [];
   for (let i = 1; i <= n; i++) {
+    const due = addMonths(start, i);
+    let changed = false;
+    while (ci < changes.length && changes[ci].from < due) {
+      changed = changed || changes[ci].rate !== rate;
+      rate = changes[ci++].rate;
+    }
+    const r = rate / 100 / 12;
+    if (changed) pmt = instalment(bal, r, n - i + 1);
     const interest = round2(bal * r);
     let principal = round2(pmt - interest);
     if (i === n) principal = round2(bal); // final payment clears rounding
     bal = round2(bal - principal);
-    rows.push({ n: i, due: addMonths(start, i), interest, principal, payment: round2(principal + interest), fee: s.fee, balance: bal });
+    rows.push({ n: i, due, rate, rateChanged: changed, interest, principal, payment: round2(principal + interest), fee: s.fee, balance: bal });
   }
   return rows;
 }
