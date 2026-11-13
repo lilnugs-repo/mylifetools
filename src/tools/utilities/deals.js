@@ -26,11 +26,11 @@ export const BILLING = {
   year: { label: "Yearly", short: "/yr", perMonth: 1 / 12 },
 };
 
-export const emptyState = { services: [], history: [] };
+export const emptyState = { services: [], history: [], sendToFixed: false };
 
 export function shapeState(v) {
   if (!v || !Array.isArray(v.services)) return null;
-  return { services: v.services, history: Array.isArray(v.history) ? v.history : [] };
+  return { services: v.services, history: Array.isArray(v.history) ? v.history : [], sendToFixed: !!v.sendToFixed };
 }
 
 export function newService(type = "electricity", today = new Date()) {
@@ -107,6 +107,18 @@ export function totals(state, today) {
   }
   for (const h of state.history) saved += savedSoFar(h, today, h.ended);
   return { now, after, saved };
+}
+
+/** What this tool sends to All My Fixed Expenses: each current service at today's monthly price. */
+export function fixedItems(state, today) {
+  if (!state.sendToFixed) return [];
+  return state.services.map((s) => ({
+    key: s.id,
+    name: [TYPES[s.type]?.label ?? "Utility", s.type === "other" && s.plan].filter(Boolean).join(": "),
+    detail: [s.provider, s.type !== "other" && s.plan].filter(Boolean).join(" · "),
+    monthly: monthlyCost(s, today).now,
+    currency: "AUD",
+  }));
 }
 
 /** Deals that need attention, for the banner and the home screen badge. */

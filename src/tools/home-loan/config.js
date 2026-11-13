@@ -21,6 +21,7 @@ export default {
   title: "My Home Loan",
   storageKey: "tools:home-loan:v1", // offline cache in the browser
   currency: { symbol: "Nrs. ", locale: "en-IN" }, // en-IN gives lakh grouping, e.g. Nrs. 1,00,000.00
+  currencyCode: "NPR", // All My Fixed Expenses converts this to AUD at its exchange rate
   defaults: {
     principal: 14300000, // Nrs. 1,43,00,000 disbursed
     rate: 13.6, // contracted rate; with the 192-month term it gives the EMI of Nrs. 1,83,103.86

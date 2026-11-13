@@ -1,0 +1,65 @@
+/* All My Fixed Expenses. Builds on loan-tracker.css (forms) and utilities.css (form rows). */
+
+/* Colour per source, shared by the split dots and group edges */
+.fx-group[data-g="car-loan"], .fx-dot[data-g="car-loan"] { --g: #6b8fb8 }
+.fx-group[data-g="home-loan"], .fx-dot[data-g="home-loan"] { --g: var(--accent) }
+.fx-group[data-g="utilities"], .fx-dot[data-g="utilities"] { --g: var(--soon) }
+.fx-group[data-g="subscriptions"], .fx-dot[data-g="subscriptions"] { --g: var(--interest) }
+.fx-group[data-g="custom"], .fx-dot[data-g="custom"] { --g: #8a6fa8 }
+
+/* Period switch */
+.fx-views { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; background: var(--sunk); border-radius: 10px; padding: 4px }
+.fx-views button { border: none; background: transparent; border-radius: 7px; padding: 8px 4px; font-size: 13px; font-weight: 700; color: var(--muted) }
+.fx-views button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, .08) }
+
+/* Total */
+.fx-total { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 6px }
+.fx-total .k { font-size: 13px; font-weight: 700; color: var(--muted) }
+.fx-total .v { font-family: var(--font-display); font-size: 40px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1 }
+.fx-total .v small { font-family: var(--font-ui); font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0 }
+.fx-others { font-size: 13px; color: var(--muted) }
+.fx-split { list-style: none; margin: 8px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px }
+.fx-split li { display: flex; align-items: center; gap: 6px }
+.fx-split b { color: var(--muted) }
+.fx-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--g) }
+.fx-sync { font-size: 12px; color: var(--muted) }
+
+/* Groups */
+.fx-group { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--g, var(--line)); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px }
+.fx-group-head { display: flex; align-items: center; gap: 12px }
+.fx-ico { width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center }
+.fx-ico svg { width: 18px; height: 18px }
+.fx-who { flex: 1; min-width: 0; display: flex; flex-direction: column }
+.fx-who b { font-size: 16px }
+.fx-linked { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none }
+.fx-linked svg { width: 12px; height: 12px }
+a.fx-linked:hover { text-decoration: underline }
+.fx-own { color: var(--muted) }
+.fx-amt { font-size: 17px; font-weight: 700; text-align: right; white-space: nowrap }
+.fx-amt small { font-size: 12px; font-weight: 600; color: var(--muted) }
+
+.fx-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.fx-items li { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px }
+.fx-items li.fx-editing { display: block; border-top: none }
+.fx-name { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere }
+.fx-name small { font-size: 12px; color: var(--muted) }
+.fx-items .head-actions { gap: 6px }
+.fx-add { align-self: flex-start }
+.fx-add svg { width: 14px; height: 14px }
+
+/* Tools not sending anything */
+.fx-off { border: 1px dashed var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px }
+.fx-off ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.fx-off li { display: flex; align-items: center; gap: 12px }
+.fx-off .fx-ico { background: var(--sunk); color: var(--muted); width: 30px; height: 30px }
+
+/* Exchange rate */
+.fx-settings { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13px }
+.fx-settings label { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--muted) }
+.fx-rate { display: inline-flex; align-items: center; gap: 6px; color: var(--fg); font-weight: 600 }
+.fx-rate input { width: 84px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 14px; color: var(--fg) }
+
+@media (max-width: 520px) {
+  .fx-total .v { font-size: 32px }
+  .fx-group-head { flex-wrap: wrap }
+}

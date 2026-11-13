@@ -14,6 +14,8 @@ import {
   toISO,
 } from "./loan.js";
 import { useCloudState } from "../../../lib/useCloudState.js";
+import FixedToggle from "../../../components/FixedToggle.jsx";
+import { loanFixedItems, makeLoanShape } from "./fixed.js";
 import "./loan-tracker.css";
 
 /**
@@ -27,20 +29,13 @@ import "./loan-tracker.css";
  */
 export default function LoanTracker({ config }) {
   const { id, title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions, variableRate = false } = config;
-  const { onRateChange = "keep-term", dayCount = "monthly", defaultPaid = {}, isPlaceholder, goalPlanner = false } = config;
+  const { onRateChange = "keep-term", dayCount = "monthly", defaultPaid = {}, goalPlanner = false } = config;
   const keepPayment = onRateChange === "keep-payment";
 
   const money = useMemo(() => makeMoney(currency), [currency]);
   const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 
-  const shape = useMemo(
-    () => (v) => {
-      if (!v.settings) return null;
-      if (isPlaceholder?.(v.settings)) return { settings: { ...defaults }, paid: { ...defaultPaid } };
-      return { settings: { ...defaults, ...v.settings }, paid: v.paid || {} };
-    },
-    [defaults, defaultPaid, isPlaceholder]
-  );
+  const shape = useMemo(() => makeLoanShape(config), [config]);
   const { state, setState, status, statusText } = useCloudState({
     id,
     storageKey,
@@ -118,6 +113,15 @@ export default function LoanTracker({ config }) {
           money={money}
         />
       )}
+
+      <FixedToggle
+        on={!!s.sendToFixed}
+        onChange={(v) => updateSetting("sendToFixed", v)}
+        summary={(() => {
+          const [item] = loanFixedItems(config, { settings: { ...s, sendToFixed: true } }, today);
+          return item ? `${money(item.monthly)} a month${config.currencyCode !== "AUD" ? " (converted to AUD there)" : ""}` : "";
+        })()}
+      />
 
       {variableRate && <Outlook s={s} rows={rows} current={currentRow} next={next} paidCount={paidCount} today={today} keepPayment={keepPayment} />}
 

@@ -5,6 +5,7 @@ export default {
   storageKey: "tools:car-loan:v1", // offline cache in the browser
   legacyKeys: ["loan-tracker-v1"], // data saved by the earlier standalone version
   currency: { symbol: "$", locale: "en-AU" },
+  currencyCode: "AUD", // for All My Fixed Expenses
   defaults: {
     principal: 20908,
     rate: 10.41, // % p.a.

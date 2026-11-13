@@ -42,10 +42,10 @@ export const WORTH = {
   no: "Thinking of cancelling",
 };
 
-export const emptyState = { subs: [] };
+export const emptyState = { subs: [], sendToFixed: false };
 
 export function shapeState(v) {
-  return v && Array.isArray(v.subs) ? { subs: v.subs } : null;
+  return v && Array.isArray(v.subs) ? { subs: v.subs, sendToFixed: !!v.sendToFixed } : null;
 }
 
 export function newSub(category = "video", today = new Date()) {
@@ -158,6 +158,21 @@ export function summary(subs, today) {
   }
   return { month, year: month * 12, paying, trials, trialsAfter, paused, review, reviewMonth };
 }
+
+/** What this tool sends to All My Fixed Expenses: each subscription being paid for now (not trials, paused or cancelled). */
+export function fixedItems(state, today) {
+  if (!state.sendToFixed) return [];
+  return state.subs
+    .filter((s) => subStatus(s, today).state === "active")
+    .map((s) => ({
+      key: s.id,
+      name: s.name,
+      detail: [s.plan, s.billing !== "month" && `${money2(price(s))} ${BILLING[s.billing]?.label.toLowerCase()}`].filter(Boolean).join(" · "),
+      monthly: perMonth(s),
+      currency: "AUD",
+    }));
+}
+const money2 = (n) => "$" + n.toFixed(2);
 
 /** Monthly spend per category, biggest first. */
 export function byCategory(subs, today) {

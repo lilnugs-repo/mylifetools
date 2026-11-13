@@ -3,6 +3,7 @@
 A lightweight React app (Vite) holding a directory of personal tools, deployed on Vercel. The home screen is a grid of tiles; each tile opens a tool at its own URL (`#/<tool-id>`). Locked tools need a date-of-birth login, checked on the server. Data is saved to a **private Vercel Blob store**, so it syncs across devices.
 
 **Tools**
+0. **All My Fixed Expenses** (locked, $, shown in its own section at the top of the home screen): one total for everything you pay regularly, shown fortnightly, monthly, quarterly or yearly. Each tool with regular costs (both loans, Household Utilities, My Subscriptions) has a **Send to Fixed Expenses** switch; while it's on, that tool's costs are pulled in automatically and marked as linked. My Home Loan's rupees are converted at an editable rate (default $1 = Nrs. 105). You can also add your own expenses (weekly to yearly). The home tile shows the total.
 1. **My Car Loan** (locked, $): tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel for the repayment due and payout figure on any date.
 2. **My Home Loan** (locked, **always Nrs.**): the same loan screen, set up from the bank statement. Variable rate with a fixed EMI (a rate change moves the end date), daily interest, the current rate and expected pay-off date, and a "Pay-off goal" panel. See `src/tools/home-loan/NOTES.md`.
 3. **Household Utilities** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
@@ -21,6 +22,7 @@ Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ───�
                                                                    tools/utilities.json
                                                                    tools/big-buys.json
                                                                    tools/subscriptions.json
+                                                                   tools/fixed-expenses.json
 localStorage: offline cache only
 ```
 
@@ -73,7 +75,8 @@ my-tools/                        # folder and Blob prefix keep the original name
         ├── home-loan/           # HomeLoanTracker.jsx + config.js (Nrs.) + NOTES.md
         ├── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
         ├── big-buys/            # BigBuys.jsx, purchases.js (categories, warranty status, badge), big-buys.css
-        └── subscriptions/       # Subscriptions.jsx, subs.js (billing cycles, next payment, totals, badge), subscriptions.css
+        ├── subscriptions/       # Subscriptions.jsx, subs.js (billing cycles, next payment, totals, badge), subscriptions.css
+        └── fixed-expenses/      # FixedExpenses.jsx, fixed.js (sources, currency, periods, home total), fixed-expenses.css
 ```
 
 ## Environment variables
@@ -112,5 +115,7 @@ vercel dev           # app + API at http://localhost:3000
 1. Create `src/tools/<id>/<Name>.jsx` with a default-exported component (wrap content in `<div className="wrap">`).
 2. Add it to `src/tools/registry.js` (`locked: true` to put it behind the login).
 3. To save data, call `api.getState("<id>")` / `api.putState("<id>", data)` from `src/lib/api.js`, or reuse `useCloudState` from `src/lib/` (pass `shape` to validate saved data and `empty` for the starting state). Each tool gets its own file in Blob.
+
+To feed a tool into All My Fixed Expenses: keep a `sendToFixed` flag in its saved data, show `<FixedToggle>` (src/components/FixedToggle.jsx), export a `fixedItems(state, today)` returning `{ key, name, detail, monthly, currency }`, and add it to `SOURCES` in `src/tools/fixed-expenses/fixed.js`.
 
 For another loan, copy a loan folder, change its `config.js` (new `id`!) and add it to the registry.

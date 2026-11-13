@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { homeBadge } from "./utilities/deals.js";
 import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
 import { homeBadge as subsBadge } from "./subscriptions/subs.js";
+import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -11,9 +12,21 @@ import { homeBadge as subsBadge } from "./subscriptions/subs.js";
  *      which is checked on the server (UNLOCK_DOB env var).
  *   3. Optional `badge()` returns { text, tone } to flag something on the tile
  *      (tone: "warn" or "soon"), or null. It runs on the home screen, so keep it light.
+ *   4. Optional `featured: true` shows it in its own section above the others, with
+ *      `headline()` returning { value, per } (e.g. "$4,210.00", "a month") or null.
  * Tools are lazy-loaded, so each one only downloads when it's opened.
  */
 export const tools = [
+  {
+    id: "fixed-expenses",
+    name: "All My Fixed Expenses",
+    description: "Every regular cost from your other tools, plus your own, in one total",
+    icon: "wallet",
+    locked: true,
+    featured: true,
+    headline: fixedHeadline,
+    component: lazy(() => import("./fixed-expenses/FixedExpenses.jsx")),
+  },
   {
     id: "car-loan",
     name: "My Car Loan",

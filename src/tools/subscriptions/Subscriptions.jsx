@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { icons } from "../../components/icons.jsx";
 import { useCloudState } from "../../lib/useCloudState.js";
 import { downloadFile, hostOf, safeUrl } from "../../lib/files.js";
+import FixedToggle from "../../components/FixedToggle.jsx";
 import {
   BILLING,
   CATEGORIES,
@@ -106,12 +107,13 @@ export default function Subscriptions() {
   };
   const save = (sub) => {
     setState((st) => ({
+      ...st,
       subs: st.subs.some((x) => x.id === sub.id) ? st.subs.map((x) => (x.id === sub.id ? sub : x)) : [sub, ...st.subs],
     }));
     cancelEdit();
   };
-  const update = (id, patch) => setState((st) => ({ subs: st.subs.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
-  const remove = (id) => setState((st) => ({ subs: st.subs.filter((x) => x.id !== id) }));
+  const update = (id, patch) => setState((st) => ({ ...st, subs: st.subs.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const remove = (id) => setState((st) => ({ ...st, subs: st.subs.filter((x) => x.id !== id) }));
 
   const form = (id) =>
     editing === id && draft ? <SubForm draft={draft} setDraft={setDraft} onSave={save} onCancel={cancelEdit} isNew={id === "new"} /> : null;
@@ -132,6 +134,12 @@ export default function Subscriptions() {
           </button>
         </div>
       </header>
+
+      <FixedToggle
+        on={state.sendToFixed}
+        onChange={(v) => setState((st) => ({ ...st, sendToFixed: v }))}
+        summary={sum.paying ? `${money(sum.month)} a month` : ""}
+      />
 
       {(soon.trials.length > 0 || soon.renewals.length > 0) && (
         <section className={`bb-alert${soon.trials.length ? " su-alert-warn" : ""}`} role="alert">

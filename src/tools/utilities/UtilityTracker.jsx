@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { icons } from "../../components/icons.jsx";
 import { useCloudState } from "../../lib/useCloudState.js";
 import { downloadFile, hostOf, safeUrl } from "../../lib/files.js";
+import FixedToggle from "../../components/FixedToggle.jsx";
 import {
   BILLING,
   STORAGE_KEY,
@@ -90,7 +91,7 @@ export default function UtilityTracker() {
       let services = pending?.replaces ? st.services.filter((x) => x.id !== pending.replaces) : st.services;
       services = services.some((x) => x.id === s.id) ? services.map((x) => (x.id === s.id ? s : x)) : [...services, s];
       const history = pending ? [{ ...pending.old, ended: toISO(today), reason: pending.reason }, ...st.history] : st.history;
-      return { services, history };
+      return { ...st, services, history };
     });
     cancel();
   };
@@ -131,6 +132,12 @@ export default function UtilityTracker() {
           </button>
         </div>
       </header>
+
+      <FixedToggle
+        on={state.sendToFixed}
+        onChange={(v) => setState((st) => ({ ...st, sendToFixed: v }))}
+        summary={state.services.length ? `${money(totals(state, today).now)} a month` : ""}
+      />
 
       {ended.map(({ s, st }) => (
         <section className="ut-alert" key={s.id} role="alert">
