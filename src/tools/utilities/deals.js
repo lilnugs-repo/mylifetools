@@ -1,6 +1,7 @@
 // Pure maths for the utility tracker: deal status, monthly costs, savings and
 // calendar export. No React here, so the home screen badge can use it cheaply.
 import { addMonths, parseISO, toISO } from "../_shared/loan/loan.js";
+import { calendarEvent, safeUrl } from "../../lib/files.js";
 
 export { parseISO, toISO };
 
@@ -135,12 +136,8 @@ export function homeBadge() {
 export function calendarFile(s) {
   const label = TYPES[s.type]?.label ?? "Utility";
   const end = dealEnd(s);
-  const next = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
-  const ymd = (d) => toISO(d).replaceAll("-", "");
-  const esc = (t) => String(t).replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
-  const title = `${label} deal with ${s.provider || "provider"} ends`;
-  const url = s.url && (/^https?:\/\//i.test(s.url) ? s.url : `https://${s.url}`);
-  const desc = [
+  const url = safeUrl(s.url);
+  const description = [
     `Intro price ends; standard price applies from here.`,
     s.plan && `Plan: ${s.plan}`,
     url && `Website: ${url}`,
@@ -148,30 +145,8 @@ export function calendarFile(s) {
   ]
     .filter(Boolean)
     .join("\n");
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//My Tools//Utility Tracker//EN",
-    "BEGIN:VEVENT",
-    `UID:${s.id}-${ymd(end)}@my-tools`,
-    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")}`,
-    `DTSTART;VALUE=DATE:${ymd(end)}`,
-    `DTEND;VALUE=DATE:${ymd(next)}`,
-    `SUMMARY:${esc(title)}`,
-    `DESCRIPTION:${esc(desc)}`,
-    ...(url ? [`URL:${url}`] : []),
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${esc(title)} in a week`,
-    "TRIGGER:-P7D",
-    "END:VALARM",
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${esc(title)} today`,
-    "TRIGGER:PT9H",
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
-  return { name: `${label}-${s.provider || "deal"}-ends-${toISO(end)}.ics`.replace(/[^a-z0-9.-]+/gi, "-"), text: lines.join("\r\n") };
+  return {
+    name: `${label}-${s.provider || "deal"}-ends-${toISO(end)}.ics`,
+    text: calendarEvent({ uid: s.id, date: end, title: `${label} deal with ${s.provider || "provider"} ends`, description, url }),
+  };
 }

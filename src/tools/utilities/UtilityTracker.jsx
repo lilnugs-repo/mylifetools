@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { icons } from "../../components/icons.jsx";
 import { useCloudState } from "../../lib/useCloudState.js";
+import { downloadFile, hostOf, safeUrl } from "../../lib/files.js";
 import {
   BILLING,
   STORAGE_KEY,
@@ -35,25 +36,6 @@ const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "s
 const DEAL_LENGTHS = [0, 1, 2, 3, 4, 6, 9, 12, 18, 24];
 const ORDER = { ended: 0, soon: 1, active: 2, upcoming: 3, none: 4 };
 
-// Only ever link to http(s); add https:// when it was typed without one.
-function safeUrl(url) {
-  const u = (url || "").trim();
-  if (!u) return null;
-  const full = /^https?:\/\//i.test(u) ? u : `https://${u}`;
-  try {
-    const p = new URL(full);
-    return p.protocol === "http:" || p.protocol === "https:" ? p.href : null;
-  } catch {
-    return null;
-  }
-}
-const hostOf = (url) => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-};
 
 // "internet", "gas"… or, for Other, the plan name ("car insurance").
 const kindOf = (s) => (s.type === "other" ? (s.plan || "").toLowerCase() : TYPES[s.type]?.label.toLowerCase() ?? "");
@@ -268,11 +250,7 @@ function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove
 
   const downloadCalendar = () => {
     const { name, text } = calendarFile(s);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type: "text/calendar" }));
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadFile(name, text, "text/calendar");
   };
 
   const del = () => {

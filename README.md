@@ -6,6 +6,7 @@ A lightweight React app (Vite) holding a directory of personal tools, deployed o
 1. **My Car Loan Tracker** (locked, $): tick off repayments, see principal and interest paid to date, a payout estimate (early termination fee, admin fee, estimated break cost), and a "Check a date" panel for the repayment due and payout figure on any date.
 2. **My Home Loan Tracker** (locked, **always Nrs.**): same tracker; figures are placeholders for now. See `src/tools/home-loan/NOTES.md`.
 3. **Household Utility Tracker** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
+4. **Big Buys & Warranties** (locked, $): a record of big purchases across 16 categories (phones, computers, appliances, furniture, vehicles, solar…), with date bought, store, price, serial number, manufacturer and extended warranty, and where the warranty and receipt are kept (email, cloud drive, paper folder…, plus a link). Shows how long each item is covered, flags warranties ending in the next 60 days (banner and home tile badge), offers a calendar reminder 30 days before cover ends, and keeps items you've sold or replaced. Search, filter by category and sort.
 
 ## How it fits together
 
@@ -17,6 +18,7 @@ DoB screen ── POST /api/unlock ─▶ checks UNLOCK_DOB,               _syst
 Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ──────▶  tools/car-loan.json
                                                                    tools/home-loan.json
                                                                    tools/utilities.json
+                                                                   tools/big-buys.json
 localStorage: offline cache only
 ```
 
@@ -52,6 +54,7 @@ my-tools/
     ├── lib/
     │   ├── api.js               # client for /api
     │   ├── useCloudState.js     # sync a tool's state to /api/state + offline cache
+    │   ├── files.js             # safe links, calendar (.ics) reminders, downloads
     │   ├── theme.js             # light/dark toggle
     │   └── useHashRoute.js      # tiny hash router
     ├── components/
@@ -66,7 +69,8 @@ my-tools/
         │   └── loan-tracker.css
         ├── car-loan/            # CarLoanTracker.jsx + config.js ($)
         ├── home-loan/           # HomeLoanTracker.jsx + config.js (Nrs.) + NOTES.md
-        └── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
+        ├── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
+        └── big-buys/            # BigBuys.jsx, purchases.js (categories, warranty status, badge), big-buys.css
 ```
 
 ## Environment variables

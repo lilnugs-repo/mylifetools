@@ -55,6 +55,76 @@ export const icons = {
       <circle cx="8" cy="8" r="1.5" />
     </svg>
   ),
+  receipt: (
+    <svg {...base}>
+      <path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5-2 1.5-2.5-1.5L5 21V3z" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+    </svg>
+  ),
+  laptop: (
+    <svg {...base}>
+      <rect x="4" y="5" width="16" height="11" rx="1.5" />
+      <path d="M2 19h20" />
+    </svg>
+  ),
+  tv: (
+    <svg {...base}>
+      <rect x="2" y="5" width="20" height="13" rx="2" />
+      <path d="M8 21h8" />
+    </svg>
+  ),
+  fridge: (
+    <svg {...base}>
+      <rect x="5" y="2" width="14" height="20" rx="2" />
+      <path d="M5 10h14M9 5.5v2M9 13v3" />
+    </svg>
+  ),
+  washer: (
+    <svg {...base}>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <circle cx="12" cy="13" r="5" />
+      <path d="M8 5.5h.01M11 5.5h.01" />
+    </svg>
+  ),
+  snowflake: (
+    <svg {...base}>
+      <path d="M12 2v20M3.3 7l17.4 10M20.7 7L3.3 17M9 4l3 2 3-2M9 20l3-2 3 2" />
+    </svg>
+  ),
+  sofa: (
+    <svg {...base}>
+      <path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3" />
+      <path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2v-5zM5 18v2M19 18v2" />
+    </svg>
+  ),
+  camera: (
+    <svg {...base}>
+      <path d="M3 8a2 2 0 0 1 2-2h2.5L9 4h6l1.5 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  ),
+  wrench: (
+    <svg {...base}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8V21h3.2l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" />
+    </svg>
+  ),
+  dumbbell: (
+    <svg {...base}>
+      <path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12" />
+    </svg>
+  ),
+  music: (
+    <svg {...base}>
+      <path d="M9 18V5l11-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="17" cy="16" r="3" />
+    </svg>
+  ),
+  gem: (
+    <svg {...base}>
+      <path d="M6 3h12l3 6-9 12L3 9l3-6zM3 9h18M9 3l3 18M15 3l-3 18" />
+    </svg>
+  ),
   calendar: (
     <svg {...base}>
       <rect x="3" y="5" width="18" height="16" rx="2" />

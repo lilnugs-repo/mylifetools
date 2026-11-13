@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { homeBadge } from "./utilities/deals.js";
+import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -36,6 +37,15 @@ export const tools = [
     locked: true,
     badge: homeBadge,
     component: lazy(() => import("./utilities/UtilityTracker.jsx")),
+  },
+  {
+    id: "big-buys",
+    name: "Big Buys & Warranties",
+    description: "What you bought, when, and how long it's covered",
+    icon: "receipt",
+    locked: true,
+    badge: bigBuysBadge,
+    component: lazy(() => import("./big-buys/BigBuys.jsx")),
   },
 ];
 
