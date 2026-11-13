@@ -5,8 +5,11 @@ export default function Home() {
   return (
     <div className="wrap">
       <div className="home-intro">
-        <h1>My Life Tools</h1>
-        <p>Pick a tool to open it. Locked tools ask for your date of birth once per login.</p>
+        <h1>Adulting, but make it organised.</h1>
+        <p>
+          Loans, bills, warranties and that streaming service you forgot you pay for, all in one place. Tap a tile and get
+          sorting. The ones with a padlock want your birthday once per login. No cake involved, sadly.
+        </p>
       </div>
       <nav className="tiles-dir" aria-label="Tools">
         {tools.map((t) => {

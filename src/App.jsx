@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Home from "./components/Home.jsx";
 import DobGate from "./components/DobGate.jsx";
-import { icons } from "./components/icons.jsx";
+import { Logo, icons } from "./components/icons.jsx";
 import { findTool } from "./tools/registry.js";
 import { api } from "./lib/api.js";
 import { useHashRoute } from "./lib/useHashRoute.js";
@@ -52,7 +52,7 @@ export default function App() {
           </a>
         ) : (
           <a className="brand" href="#/">
-            <span className="brand-mark">S</span> My Life Tools
+            <Logo /> My Life Tools
           </a>
         )}
         <div className="head-actions">

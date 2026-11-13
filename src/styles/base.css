@@ -15,6 +15,7 @@
   --ok: #5b8a5c;
   --soon: #8a6212;
   --soon-soft: #f6ead0;
+  --spark: #e9a26a; /* the warm dot in the logo */
   --font-ui: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   /* Figures use the UI font with tabular numerals so columns still line up. */
@@ -26,13 +27,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
-    --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320;
+    --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320; --spark: #f0b47e;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
-  --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320;
+  --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493; --soon: #e2b863; --soon-soft: #3d3320; --spark: #f0b47e;
   color-scheme: dark;
 }
 
@@ -68,7 +69,8 @@ a { color: inherit }
 /* App shell */
 .topbar { max-width: 720px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px }
 .brand { font-family: var(--font-display); font-weight: 600; font-size: 17px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px }
-.brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; color: var(--surface); font-size: 12px }
+.brand .logo { flex: none; display: block; transition: transform .2s }
+.brand:hover .logo { transform: rotate(-6deg) scale(1.06) }
 .loading { color: var(--muted); font-size: 13px; padding: 24px 0 }
 
 /* Home directory */

@@ -1,6 +1,24 @@
 // Small inline icon set (stroke icons, 24px grid). Add new ones here as tools are added.
 const base = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
 
+/** The app's logo: a heartbeat that rises like a tick ("life, sorted"), ending in a warm dot. Matches public/favicon.svg. */
+export function Logo({ size = 28 }) {
+  return (
+    <svg className="logo" viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="var(--accent)" />
+      <path
+        d="M5 18h4l2.5-6.5 4.5 11 3.5-9 1.8 4.5"
+        fill="none"
+        stroke="var(--surface)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="25.8" cy="18" r="2.3" fill="var(--spark)" />
+    </svg>
+  );
+}
+
 export const icons = {
   car: (
     <svg {...base}>
