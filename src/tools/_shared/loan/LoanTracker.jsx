@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addMonths, buildSchedule, summarise, payout, projectToDate, parseISO, toISO } from "./loan.js";
+import { addMonths, buildSchedule, fullMonthsBetween, rateChanges, summarise, payout, projectToDate, parseISO, toISO } from "./loan.js";
 import { useCloudState } from "../../../lib/useCloudState.js";
 import "./loan-tracker.css";
 
@@ -46,7 +46,9 @@ export default function LoanTracker({ config }) {
   const paidCount = rows.filter((r) => paid[r.n]).length;
   const overdue = rows.filter((r) => !paid[r.n] && r.due < today);
   const pct = (totals.principalPaid / s.principal) * 100;
-  const currentRate = (next ?? rows[rows.length - 1])?.rate ?? s.rate;
+  // Rate charged for the period we're in today (not the oldest unticked payment)
+  const currentRow = rows.find((r) => r.due >= today) ?? rows[rows.length - 1];
+  const currentRate = currentRow?.rate ?? s.rate;
 
   const togglePaid = (n, on) =>
     setState((st) => {
@@ -102,6 +104,8 @@ export default function LoanTracker({ config }) {
           money={money}
         />
       )}
+
+      {variableRate && <Outlook s={s} rows={rows} current={currentRow} next={next} paidCount={paidCount} today={today} keepPayment={keepPayment} />}
 
       <NowCard s={s} count={count} variableRate={variableRate} next={next} overdue={overdue} today={today} money={money} fmtDate={fmtDate} onPay={() => next && togglePaid(next.n, true)} />
 
@@ -197,6 +201,72 @@ function NowCard({ s, count, variableRate, next, overdue, today, money, fmtDate,
       <button className="pay-btn" type="button" onClick={onPay}>
         Mark payment {next.n} as paid
       </button>
+    </section>
+  );
+}
+
+/** Headline for variable-rate loans: the rate now, and when the loan ends if it stays there. */
+function Outlook({ s, rows, current, next, paidCount, today, keepPayment }) {
+  const fmtMonth = (d) => d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+  const last = rows[rows.length - 1];
+  const rate = current.rate;
+
+  // When the current rate took effect, and how far it has moved since the first repayment
+  const changes = rateChanges(s);
+  const since = changes.filter((c) => c.from < current.due).pop()?.from ?? parseISO(s.start);
+  const futureChanges = changes.some((c) => c.from >= current.due);
+  const firstRate = rows[0].rate;
+  const moved = Math.round((rate - firstRate) * 100) / 100;
+
+  const contractEnd = addMonths(parseISO(s.start), s.term);
+  const diff = s.term - rows.length; // > 0: ends early
+  const left = rows.length - paidCount;
+  const untilEnd = fullMonthsBetween(today, last.due);
+
+  return (
+    <section className="outlook" aria-label="Interest rate and pay-off outlook">
+      <div className="outlook-cell">
+        <span className="k">Current interest rate</span>
+        <span className="v num">{fmtRate(rate)} p.a.</span>
+        <span className="of num">
+          Since {fmtMonth(since)}
+          {moved !== 0 && (
+            <>
+              {" · "}
+              <b className={moved < 0 ? "good" : "bad"}>
+                {moved < 0 ? "▼" : "▲"} {Math.abs(moved).toFixed(2)} points
+              </b>{" "}
+              from {fmtRate(firstRate)} at the start
+            </>
+          )}
+        </span>
+      </div>
+      <div className="outlook-cell">
+        <span className="k">{next ? "Paid off by" : "Paid off"}</span>
+        <span className="v num">{fmtMonth(last.due)}</span>
+        <span className="of num">
+          {next ? (
+            <>
+              {untilEnd > 0 ? `In ${fmtYears(untilEnd)}` : "This month"} · {left} payment{left === 1 ? "" : "s"} left
+            </>
+          ) : (
+            "All payments made"
+          )}
+        </span>
+        {keepPayment && (
+          <span className={`chip${diff < 0 ? " late" : ""}`}>
+            {diff > 0 ? `${fmtYears(diff)} earlier than the full term` : diff < 0 ? `${fmtYears(-diff)} later than the full term` : "Right on the full term"}
+          </span>
+        )}
+        <span className="of">
+          {keepPayment ? `Full term: ${fmtYears(s.term)}, ending ${fmtMonth(contractEnd)}. ` : ""}
+          {next
+            ? futureChanges
+              ? "Includes the future rate changes you've entered, with every repayment made on time."
+              : `Assumes the rate stays at ${fmtRate(rate)} and every repayment is made on time.`
+            : ""}
+        </span>
+      </div>
     </section>
   );
 }
