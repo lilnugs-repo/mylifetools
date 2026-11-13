@@ -126,8 +126,11 @@ function makeMoney({ symbol, locale }) {
 }
 
 function fmtYears(months) {
-  const y = months / 12;
-  return Number.isInteger(y) ? `${y} year${y === 1 ? "" : "s"}` : `${months} months`;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  const ys = y ? `${y} year${y === 1 ? "" : "s"}` : "";
+  const ms = m ? `${m} month${m === 1 ? "" : "s"}` : "";
+  return [ys, ms].filter(Boolean).join(" ");
 }
 
 function startOfToday() {
@@ -381,7 +384,7 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
   const fields = [
     { k: "principal", label: `Loan amount (${cur})`, type: "number", step: "0.01", min: 1 },
     { k: "rate", label: variableRate ? "Starting interest rate (% p.a.)" : "Interest rate (% p.a.)", type: "number", step: "0.01", min: 0 },
-    { k: "term", label: "Term", type: "select" },
+    { k: "term", label: "Term (months)", type: "number", step: "1", min: 1, max: 600, integer: true, list: "term-options" },
     { k: "fee", label: `Monthly account fee (${cur})`, type: "number", step: "0.01", min: 0 },
     { k: "start", label: "Loan start date", type: "date" },
     ...(rules.breakCost
@@ -399,6 +402,8 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
     }
     const v = Number(raw);
     if (!Number.isFinite(v) || v < f.min || (f.min === 1 && v <= 0)) return;
+    if (f.integer && !Number.isInteger(v)) return;
+    if (f.max != null && v > f.max) return;
     onChange(f.k, v);
   };
 
@@ -440,28 +445,28 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
       {fields.map((f) => (
         <label key={f.k}>
           {f.label}
-          {f.type === "select" ? (
-            <select id={`f-${f.k}`} value={settings.term} onChange={(e) => commit({ ...f, min: 1 }, e.target.value)}>
-              {termOptions.map((m) => (
-                <option key={m} value={m}>
-                  {fmtYears(m)} ({m})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id={`f-${f.k}`}
-              type={f.type}
-              step={f.step}
-              min={f.min}
-              defaultValue={settings[f.k]}
-              key={`${f.k}-${settings[f.k]}`}
-              onBlur={(e) => commit(f, e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && commit(f, e.currentTarget.value)}
-            />
-          )}
+          <input
+            id={`f-${f.k}`}
+            type={f.type}
+            step={f.step}
+            min={f.min}
+            max={f.max}
+            list={f.list}
+            defaultValue={settings[f.k]}
+            key={`${f.k}-${settings[f.k]}`}
+            onBlur={(e) => commit(f, e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && commit(f, e.currentTarget.value)}
+          />
+          {f.k === "term" && <span className="hint">{fmtYears(settings.term)}</span>}
         </label>
       ))}
+      <datalist id="term-options">
+        {termOptions.map((m) => (
+          <option key={m} value={m}>
+            {fmtYears(m)}
+          </option>
+        ))}
+      </datalist>
       {variableRate && <RateChanges changes={settings.rateChanges || []} start={settings.start} onChange={(v) => onChange("rateChanges", v)} />}
       <div className="full">
         <span>First repayment falls one month after the start date. {msg}</span>
