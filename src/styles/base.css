@@ -1,28 +1,37 @@
 /* Shared design tokens and base elements for every tool in the app. */
 :root {
-  --bg: #f3f5f4;
-  --surface: #ffffff;
-  --sunk: #e8ecea;
-  --fg: #16201d;
-  --muted: #5d6b66;
-  --line: #d5dcd9;
-  --accent: #0e6b5c;
-  --accent-soft: #d5ece7;
-  --interest: #b4602a;
-  --warn: #a8461d;
-  --warn-soft: #fbe3d8;
-  --ok: #1d7a4f;
-  --font-ui: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* Warm oat paper, sage green accent; interest is terracotta, warnings a dusty rose. */
+  --bg: #f6f1e9;
+  --surface: #fffcf7;
+  --sunk: #ede5d8;
+  --fg: #2f2a24;
+  --muted: #75695c;
+  --line: #e3d9ca;
+  --accent: #4d6b51;
+  --accent-soft: #e4ebdd;
+  --interest: #a5532d;
+  --warn: #a8434f;
+  --warn-soft: #f7e3e2;
+  --ok: #5b8a5c;
+  --font-ui: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  /* Figures use the UI font with tabular numerals so columns still line up. */
+  --font-num: var(--font-ui);
   --r: 12px;
   color-scheme: light;
 }
+/* Dark: follows the device unless the top-bar toggle set data-theme on <html> (see src/lib/theme.js). */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #101614; --surface: #18201d; --sunk: #222c28; --fg: #e6ecea; --muted: #94a39d; --line: #2e3a36;
-    --accent: #4cc2a9; --accent-soft: #173a33; --interest: #e39a62; --warn: #f08a5d; --warn-soft: #3d2117; --ok: #5bd197;
+  :root:not([data-theme="light"]) {
+    --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
+    --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #1d1a17; --surface: #26221e; --sunk: #302b26; --fg: #eee6da; --muted: #a89c8e; --line: #3a342e;
+  --accent: #9fbf9c; --accent-soft: #2e382d; --interest: #e59a70; --warn: #e88b95; --warn-soft: #42282b; --ok: #94c493;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box }
@@ -40,8 +49,8 @@ body {
 .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px }
 .stack { display: flex; flex-direction: column; gap: 10px }
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums }
-h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.01em; text-wrap: balance }
-h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 }
+h1 { font-family: var(--font-display); font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance }
+h2 { font-size: 15px; font-weight: 700; color: var(--muted); margin: 0 }
 button, input, select { font: inherit; color: inherit }
 button { cursor: pointer }
 a { color: inherit }
@@ -50,12 +59,13 @@ a { color: inherit }
 .head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px }
 .btn:hover { border-color: var(--accent) }
+.btn.icon { padding: 6px; width: 32px; height: 32px; justify-content: center }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface) }
 .danger { color: var(--warn) }
 
 /* App shell */
 .topbar { max-width: 720px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px }
-.brand { font-weight: 800; font-size: 14px; letter-spacing: 0.02em; text-decoration: none; display: inline-flex; align-items: center; gap: 8px }
+.brand { font-family: var(--font-display); font-weight: 600; font-size: 17px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px }
 .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; color: var(--surface); font-size: 12px }
 .loading { color: var(--muted); font-size: 13px; padding: 24px 0 }
 
@@ -80,7 +90,7 @@ a.tool-tile:hover { border-color: var(--accent); transform: translateY(-1px) }
 .gate .ico svg { width: 20px; height: 20px }
 .gate p { margin: 0; color: var(--muted); font-size: 13px }
 .gate label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted) }
-.gate input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 18px; letter-spacing: 0.08em; color: var(--fg); font-family: var(--font-num); min-width: 0 }
+.gate input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 18px; letter-spacing: 0.04em; color: var(--fg); font-family: var(--font-num); font-variant-numeric: tabular-nums; min-width: 0 }
 .gate input[aria-invalid="true"] { border-color: var(--warn) }
 .gate .err { color: var(--warn); font-size: 13px; min-height: 1.2em; margin: 0 }
 .gate .btn.primary { justify-content: center; padding: 12px; font-size: 15px }

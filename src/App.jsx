@@ -5,9 +5,11 @@ import { icons } from "./components/icons.jsx";
 import { findTool } from "./tools/registry.js";
 import { api } from "./lib/api.js";
 import { useHashRoute } from "./lib/useHashRoute.js";
+import { useTheme } from "./lib/theme.js";
 
 export default function App() {
   const route = useHashRoute();
+  const { theme, toggle: toggleTheme } = useTheme();
   const tool = route ? findTool(route) : null;
   // "checking" until /api/session answers; one login unlocks every locked tool
   const [auth, setAuth] = useState("checking");
@@ -53,11 +55,22 @@ export default function App() {
             <span className="brand-mark">S</span> My Tools
           </a>
         )}
-        {auth === "in" && (
-          <button className="btn" type="button" onClick={lock}>
-            Lock
+        <div className="head-actions">
+          <button
+            className="btn icon"
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? icons.sun : icons.moon}
           </button>
-        )}
+          {auth === "in" && (
+            <button className="btn" type="button" onClick={lock}>
+              Lock
+            </button>
+          )}
+        </div>
       </div>
 
       {!tool && <Home />}
