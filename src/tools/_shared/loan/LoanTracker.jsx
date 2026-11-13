@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addMonths, buildSchedule, fullMonthsBetween, rateChanges, summarise, payout, projectToDate, parseISO, toISO } from "./loan.js";
+import {
+  addMonths,
+  buildSchedule,
+  fullMonthsBetween,
+  paymentToClear,
+  rateChanges,
+  rateToClear,
+  runDown,
+  summarise,
+  payout,
+  projectToDate,
+  parseISO,
+  toISO,
+} from "./loan.js";
 import { useCloudState } from "../../../lib/useCloudState.js";
 import "./loan-tracker.css";
 
@@ -8,12 +21,13 @@ import "./loan-tracker.css";
  *   id, title, storageKey, legacyKeys?, currency: { symbol, locale }, defaults, rules, termOptions, variableRate?
  * variableRate: true lets the rate change over time (settings.rateChanges = [{ from, rate }]).
  * onRateChange: "keep-term" (default) | "keep-payment"; dayCount: "monthly" (default) | "actual/365". See loan.js.
+ * goalPlanner?: true shows "Pay-off goal" in place of "Check a date".
  * defaultPaid?: repayments already ticked for a new tracker; isPlaceholder?(settings): saved settings to replace with defaults.
  * State is saved to the private Blob store via /api/state, cached locally for offline use.
  */
 export default function LoanTracker({ config }) {
   const { id, title, storageKey, legacyKeys = [], currency, defaults, rules, termOptions, variableRate = false } = config;
-  const { onRateChange = "keep-term", dayCount = "monthly", defaultPaid = {}, isPlaceholder } = config;
+  const { onRateChange = "keep-term", dayCount = "monthly", defaultPaid = {}, isPlaceholder, goalPlanner = false } = config;
   const keepPayment = onRateChange === "keep-payment";
 
   const money = useMemo(() => makeMoney(currency), [currency]);
@@ -129,7 +143,20 @@ export default function LoanTracker({ config }) {
 
       <Payout heading="If you paid it out today" po={po} s={s} rules={rules} money={money} />
 
-      <DateCheck s={s} rows={rows} rules={rules} money={money} fmtDate={fmtDate} storageKey={storageKey} />
+{goalPlanner ? (
+        <GoalPlanner
+          s={s}
+          rows={rows}
+          current={currentRow}
+          keepPayment={keepPayment}
+          opts={{ onRateChange, dayCount }}
+          money={money}
+          fmtDate={fmtDate}
+          onGoal={(v) => updateSetting("goal", v)}
+        />
+      ) : (
+        <DateCheck s={s} rows={rows} rules={rules} money={money} fmtDate={fmtDate} storageKey={storageKey} />
+      )}
 
       <section className="stack">
         <h2>Repayment schedule</h2>
@@ -207,7 +234,6 @@ function NowCard({ s, count, variableRate, next, overdue, today, money, fmtDate,
 
 /** Headline for variable-rate loans: the rate now, and when the loan ends if it stays there. */
 function Outlook({ s, rows, current, next, paidCount, today, keepPayment }) {
-  const fmtMonth = (d) => d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
   const last = rows[rows.length - 1];
   const rate = current.rate;
 
@@ -310,6 +336,132 @@ function Payout({ heading, po, s, rules, money }) {
           lender's real figure depends on actual wholesale swap rates and is zero if they haven't fallen since the loan started.
         </p>
       )}
+    </section>
+  );
+}
+
+const fmtMonth = (d) => d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
+const toMonthISO = (d) => toISO(d).slice(0, 7);
+
+/**
+ * "Pay-off goal": pick the month to be done by, and see the extra repayment needed at
+ * today's rate, or how far the rate would have to fall with the repayment unchanged.
+ * Works from the repayment due now, assuming every earlier one is made on time.
+ */
+function GoalPlanner({ s, rows, current, keepPayment, opts, money, fmtDate, onGoal }) {
+  if (!current || current.n === rows.length) {
+    return (
+      <section className="check" aria-label="Pay-off goal">
+        <h2>Pay-off goal</h2>
+        <p className="note">{current ? "Only the final repayment is left." : "The loan is repaid."}</p>
+      </section>
+    );
+  }
+
+  const after = current.n - 1; // repayments already due before this one
+  const bal = after ? rows[after - 1].balance : s.principal;
+  const rate = current.rate;
+  const emi = keepPayment ? rows[0].payment : current.payment;
+
+  // Plan if nothing changes: today's rate and repayment from here on
+  const plan = runDown(s, opts, bal, after, rate, emi);
+  const planEnd = addMonths(parseISO(s.start), after + plan.months);
+
+  const fallback = toMonthISO(addMonths(planEnd, -24));
+  const goalISO = /^\d{4}-\d{2}$/.test(s.goal || "") ? s.goal : fallback;
+  const goal = parseISO(`${goalISO}-01`);
+  const n = monthIndex(goal) - monthIndex(current.due) + 1; // repayments up to and including the goal month
+  const sooner = plan.months - n;
+
+  const quick = [1, 2, 3, 5].filter((y) => plan.months - y * 12 >= 1);
+
+  let body;
+  if (n < 1) {
+    body = <p className="note">Pick a month from {fmtMonth(current.due)} onwards: that repayment is the next one due.</p>;
+  } else if (sooner <= 0) {
+    body = (
+      <p className="goal-ok">
+        You're already on track. At {fmtRate(rate)} with the current repayment the loan is paid off in{" "}
+        <b>{fmtMonth(planEnd)}</b>
+        {sooner < 0 ? `, ${fmtYears(-sooner)} before your goal` : ", right on your goal"}.
+      </p>
+    );
+  } else {
+    const pmt = paymentToClear(s, opts, bal, after, rate, n);
+    const extra = Math.max(0, pmt - emi);
+    const saved = plan.interest - runDown(s, opts, bal, after, rate, pmt, n).interest;
+    const need = rateToClear(s, opts, bal, after, emi, n, rate);
+    const zeroMonths = runDown(s, opts, bal, after, 0, emi).months;
+    body = (
+      <div className="check-grid">
+        <div className="check-cell">
+          <span className="k">Pay extra each month</span>
+          <span className="v num">+{money(extra)}</span>
+          <span className="of num">
+            {money(pmt)} a month instead of {money(emi)}, at today's {fmtRate(rate)}. Saves about {money(saved)} in interest.
+          </span>
+        </div>
+        <div className="check-cell">
+          <span className="k">Or the rate would need to fall to</span>
+          {need == null ? (
+            <>
+              <span className="v num">Not possible</span>
+              <span className="of num">
+                Even at 0% a repayment of {money(emi)} lasts until{" "}
+                {fmtMonth(addMonths(parseISO(s.start), after + zeroMonths))}. You'd need to pay more.
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="v num">{fmtRate(need)} p.a.</span>
+              <span className="of num">
+                <b className="good">▼ {(Math.round((rate - need) * 100) / 100).toFixed(2)} points</b> from {fmtRate(rate)}, from now
+                until then, keeping the repayment at {money(emi)}.
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section className="check" aria-label="Pay-off goal">
+      <div className="payout-head">
+        <h2>Pay-off goal</h2>
+        <div className="check-controls">
+          {quick.map((y) => (
+            <button key={y} type="button" className="btn small" onClick={() => onGoal(toMonthISO(addMonths(planEnd, -12 * y)))}>
+              {y} yr{y === 1 ? "" : "s"} sooner
+            </button>
+          ))}
+          <input
+            id="goal-month"
+            type="month"
+            min={toMonthISO(current.due)}
+            value={goalISO}
+            onChange={(e) => e.target.value && onGoal(e.target.value)}
+            aria-label="Goal pay-off month"
+          />
+        </div>
+      </div>
+      <p className="goal-summary">
+        Debt-free by <b>{fmtMonth(goal)}</b>
+        {n >= 1 && (
+          <>
+            {" "}
+            · {n} repayment{n === 1 ? "" : "s"} from {fmtMonth(current.due)}
+            {sooner > 0 ? ` · ${fmtYears(sooner)} sooner than the current plan (${fmtMonth(planEnd)})` : ""}
+          </>
+        )}
+      </p>
+      {body}
+      <p className="note">
+        Starts from {money(bal)} owing before payment {current.n} (due {fmtDate(current.due)}), assuming every repayment before it
+        is made on time. The extra payment uses today's {fmtRate(rate)} for every month to the goal. Extra payments assume the bank puts them
+        straight onto the principal: check whether it charges a prepayment fee.
+      </p>
     </section>
   );
 }

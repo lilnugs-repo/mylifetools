@@ -165,3 +165,52 @@ export function projectToDate(s, rows, date, rules) {
   const nextDue = rows[paidCount] ?? null;
   return { paidCount, lastPaid, nextDue, principalPaid, interestPaid, feesPaid, payout: payout(s, rows, paid, date, rules) };
 }
+
+/* ---------- Pay-off goal (fixed rate from here on) ---------- */
+
+/**
+ * Run the loan forward from repayment `after` (0 = the start) with balance `bal`, a fixed
+ * `rate` and repayment `pmt`, for up to `n` repayments or until it's cleared.
+ * Returns { balance, months, interest } (balance is ≤ 0 once cleared; the last repayment
+ * is then smaller than `pmt`). Due dates and day counts match buildSchedule.
+ */
+export function runDown(s, opts, bal, after, rate, pmt, n = MAX_ROWS) {
+  const daily = opts.dayCount === "actual/365";
+  const start = parseISO(s.start);
+  let prev = addMonths(start, after);
+  let interest = 0;
+  let months = 0;
+  while (months < n && bal > 0.005) {
+    months++;
+    const due = addMonths(start, after + months);
+    const i = daily ? (bal * rate * daysBetween(prev, due)) / 100 / 365 : (bal * rate) / 100 / 12;
+    interest += i; // the last repayment is smaller, but its period's interest is still charged
+    bal = bal + i - pmt;
+    prev = due;
+  }
+  return { balance: bal, months, interest };
+}
+
+/** Repayment that clears `bal` in exactly `n` repayments at `rate` (rounded up to the paisa). */
+export function paymentToClear(s, opts, bal, after, rate, n) {
+  let lo = 0, hi = bal * 2 + 1;
+  for (let k = 0; k < 80; k++) {
+    const mid = (lo + hi) / 2;
+    if (runDown(s, opts, bal, after, rate, mid, n).balance > 0) lo = mid;
+    else hi = mid;
+  }
+  return Math.ceil(hi * 100) / 100;
+}
+
+/** Highest rate at which `pmt` clears `bal` within `n` repayments, or null if even 0% can't. */
+export function rateToClear(s, opts, bal, after, pmt, n, maxRate) {
+  if (runDown(s, opts, bal, after, 0, pmt, n).balance > 0.005) return null;
+  let lo = 0, hi = Math.max(maxRate, 0.01);
+  if (runDown(s, opts, bal, after, hi, pmt, n).balance <= 0.005) return hi;
+  for (let k = 0; k < 60; k++) {
+    const mid = (lo + hi) / 2;
+    if (runDown(s, opts, bal, after, mid, pmt, n).balance > 0.005) hi = mid;
+    else lo = mid;
+  }
+  return Math.floor(lo * 100) / 100;
+}

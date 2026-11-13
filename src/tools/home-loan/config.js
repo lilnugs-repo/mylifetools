@@ -78,5 +78,6 @@ export default {
   variableRate: true, // the rate can change over time (rateChanges above)
   onRateChange: "keep-payment", // the bank keeps the EMI the same; a rate change moves the end date instead
   dayCount: "actual/365", // interest accrues daily on actual days / 365
+  goalPlanner: true, // "Pay-off goal" replaces "Check a date"
   termOptions: [120, 144, 180, 192, 240, 300, 360],
 };

@@ -41,3 +41,13 @@ The bank charges a variable rate, and the tracker follows how it handles a chang
 - **Contracted interest rate** and **Contracted term** under **Loan details** set the EMI only. The rates actually charged are the **Interest rate changes** list.
 - When the bank changes the rate, add the date and the new rate under **Interest rate changes**. To work out a rate from a statement: interest ÷ (balance before the payment × days in the period ÷ 365).
 - Changes are saved in the loan's settings as `rateChanges: [{ from: "YYYY-MM-DD", rate }]`, so they're stored in the Blob store and included in exported backups.
+
+## Pay-off goal
+
+The home loan shows **Pay-off goal** in place of **Check a date** (`goalPlanner: true` in `config.js`; the car loan keeps Check a date).
+
+- Pick the month you want the loan finished by (or a "N yrs sooner" shortcut). It's saved with the loan as `goal: "YYYY-MM"`.
+- **Pay extra each month**: the extra repayment, on top of the EMI, that clears the loan by the goal month at today's rate. Also shows roughly how much interest that saves.
+- **Or the rate would need to fall to**: the rate that would clear it by then with the EMI unchanged. "Not possible" means the EMI alone can't clear the balance in time even at 0%.
+- Works from the repayment due now (the first one on or after today), assuming every earlier repayment is made on time. Uses the same daily-interest maths as the schedule (`runDown`, `paymentToClear`, `rateToClear` in `src/tools/_shared/loan/loan.js`).
+- Extra payments assume the bank applies them straight to the principal; check for a prepayment fee.
