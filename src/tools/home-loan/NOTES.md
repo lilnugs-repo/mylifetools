@@ -22,7 +22,9 @@ The figures in `config.js` were taken from the bank's payment statement covering
 
 With these, the tracker reproduces the statement's interest to within Nrs. 0.56 a month, and its balance after EMI 32 is Nrs. 1.61 off the bank's Nrs. 1,23,13,478.20.
 
-**Still placeholders** (copied from the car loan): the early-payout rules in `rules` (admin fee, early termination fee, break cost) and the swap rates. Break cost is an Australian fixed-rate concept and adds a large made-up amount to the payout estimate; set `breakCost: false` and fill in the bank's real prepayment charge.
+**Still placeholders** (copied from the car loan): the admin fee and early termination fee in `rules`. Replace them with the bank's real prepayment charge.
+
+**No break cost.** `breakCost` is `false`: the car loan's swap-rate break cost is for fixed-rate loans and doesn't apply to this variable-rate loan, so it's left out of the payout estimate and the swap-rate fields are hidden.
 
 If saved data in the Blob store still holds the old placeholder loan (Nrs. 20,908 starting 1 Dec 2026), the app replaces it with these figures automatically. Otherwise saved figures win over `config.js`; change them under **Loan details**.
 

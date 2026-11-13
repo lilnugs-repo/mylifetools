@@ -64,8 +64,6 @@ export default {
       { from: "2025-11-20", rate: 8.386 },
       { from: "2025-12-20", rate: 8.23 },
     ],
-    swapFall: 2, // PLACEHOLDER
-    swapNow: 3.5, // PLACEHOLDER
   },
   defaultPaid: paidFromStatement,
   // Saved data that still holds the old car-loan placeholder figures is replaced with the above.
@@ -75,7 +73,7 @@ export default {
     etfMax: 750, // PLACEHOLDER
     etfMonthlyReduction: 15, // PLACEHOLDER
     waiverMonths: 3, // PLACEHOLDER
-    breakCost: true, // PLACEHOLDER: set false if the home loan has no break cost
+    breakCost: false, // no swap-rate break cost on this variable-rate loan
   },
   variableRate: true, // the rate can change over time (rateChanges above)
   onRateChange: "keep-payment", // the bank keeps the EMI the same; a rate change moves the end date instead
