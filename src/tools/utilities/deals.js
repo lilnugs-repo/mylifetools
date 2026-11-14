@@ -48,6 +48,7 @@ export function newService(type = "electricity", today = new Date()) {
     billing: "month",
     notes: "",
     acknowledged: false, // "Deal ended" banner dismissed
+    cancelledOn: "", // date you cancelled it; kept on the list, moved to the end
   };
 }
 
@@ -58,6 +59,7 @@ export const startOfToday = () => {
 };
 
 export const hasDeal = (s) => s.promoMonths > 0;
+export const isCancelled = (s) => !!s.cancelledOn;
 export const dealEnd = (s) => addMonths(parseISO(s.start), s.promoMonths);
 const monthly = (price, s) => (Number(price) || 0) * BILLING[s.billing || "month"].perMonth;
 
@@ -68,9 +70,11 @@ const monthly = (price, s) => (Number(price) || 0) * BILLING[s.billing || "month
  *   active   deal running, more than REMIND_DAYS left
  *   soon     deal ends within REMIND_DAYS
  *   ended    deal is over, paying the standard price
+ *   cancelled  you've cancelled the service (kept for the record)
  */
 export function dealStatus(s, today) {
   const start = parseISO(s.start);
+  if (isCancelled(s)) return { state: "cancelled", start, cancelledOn: parseISO(s.cancelledOn), ...(hasDeal(s) && { end: dealEnd(s) }) };
   if (!hasDeal(s)) return { state: "none", start };
   const end = dealEnd(s);
   const daysLeft = Math.round((end - today) / DAY);
@@ -84,6 +88,7 @@ export function dealStatus(s, today) {
 /** Monthly cost now (deal price while it runs) and once the deal is over. */
 export function monthlyCost(s, today) {
   const st = dealStatus(s, today).state;
+  if (st === "cancelled") return { now: 0, after: 0 };
   const onDeal = st === "active" || st === "soon" || st === "upcoming";
   return { now: monthly(onDeal ? s.promoPrice : s.regularPrice, s), after: monthly(s.regularPrice, s) };
 }
@@ -103,7 +108,7 @@ export function totals(state, today) {
     const c = monthlyCost(s, today);
     now += c.now;
     after += c.after;
-    saved += savedSoFar(s, today);
+    saved += savedSoFar(s, today, s.cancelledOn || undefined);
   }
   for (const h of state.history) saved += savedSoFar(h, today, h.ended);
   return { now, after, saved };
@@ -112,7 +117,7 @@ export function totals(state, today) {
 /** What this tool sends to All My Fixed Expenses: each current service at today's monthly price. */
 export function fixedItems(state, today) {
   if (!state.sendToFixed) return [];
-  return state.services.map((s) => ({
+  return state.services.filter((s) => !isCancelled(s)).map((s) => ({
     key: s.id,
     name: [TYPES[s.type]?.label ?? "Utility", s.type === "other" && s.plan].filter(Boolean).join(": "),
     detail: [s.provider, s.type !== "other" && s.plan].filter(Boolean).join(" · "),

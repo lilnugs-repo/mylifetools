@@ -75,7 +75,7 @@ export default function Reminders() {
       <header className="loan-head">
         <div>
           <h1>Email Reminders</h1>
-          <div className="sub">One email when something's close. No newsletters, no daily digest.</div>
+          <div className="sub">Emails only when something's close, nothing otherwise.</div>
         </div>
         <div className="head-actions">
           <span className="save" data-s={status} role="status">
@@ -160,6 +160,12 @@ export default function Reminders() {
                   ))}
                 </select>
               </label>
+              {kind.dailyLabel && (
+                <label className="rm-daily">
+                  <input type="checkbox" checked={!!v.daily} onChange={(e) => setKind(k, { daily: e.target.checked })} disabled={!s.enabled || !v.on} />
+                  {kind.dailyLabel}
+                </label>
+              )}
             </div>
           );
         })}
@@ -195,14 +201,16 @@ export default function Reminders() {
                     {TOOL_NAMES[i.tool]} · {i.detail}
                   </small>
                 </span>
-                <span className={`chip ${i.sent ? "rm-sent" : ""}`}>{i.sent ? "Emailed" : "Will email"}</span>
+                <span className={`chip ${i.sent ? "rm-sent" : ""}`}>
+                  {i.daily ? (i.sent ? "Emailed today" : "Emails daily") : i.sent ? "Emailed" : "Will email"}
+                </span>
               </li>
             ))}
           </ul>
         )}
         <p className="note">
-          Each reminder is emailed once, on the first morning it's within your notice period. If several land on the same day, they
-          come in one email.
+          Each reminder is emailed once, on the first morning it's within your notice period, unless it's set to repeat daily. If
+          several land on the same day, they come in one email.
           {preview?.lastRun && <> Last daily check: {fmtWhen(preview.lastRun.at)}{preview.lastRun.sent ? `, emailed ${preview.lastRun.sent}` : ", nothing new to send"}.</>}
         </p>
       </section>

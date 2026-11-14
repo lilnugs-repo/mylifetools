@@ -81,7 +81,7 @@ export function buildEmail(items, appUrl, { test = false } = {}) {
     "",
     ...items.flatMap((i) => [`• ${i.title}, ${whenText(i.days)} (${fmtDate(i.date)})`, `  ${i.detail}`, link(i) && `  ${link(i)}`, ""]).filter((l) => l !== ""),
     "",
-    "You get these because email reminders are on in My Life Tools. Change them under Email Reminders.",
+    "You get these because email reminders are on in My Life Tools. Change them with the Notifications button at the top of the app.",
   ].join("\n");
 
   const rows = items
@@ -99,7 +99,7 @@ export function buildEmail(items, appUrl, { test = false } = {}) {
 <tr><td style="font-size:20px;font-weight:700;color:#2f2a24;padding-bottom:8px">My Life Tools</td></tr>
 <tr><td style="font-size:15px;color:#2f2a24;padding-bottom:8px">${escapeHtml(intro)}</td></tr>
 ${rows}
-<tr><td style="font-size:12px;color:#75695c;padding-top:16px;border-top:1px solid #e3d9ca">You get these because email reminders are on in My Life Tools. Change them under Email Reminders.</td></tr>
+<tr><td style="font-size:12px;color:#75695c;padding-top:16px;border-top:1px solid #e3d9ca">You get these because email reminders are on in My Life Tools. Change them with the Notifications button at the top of the app.</td></tr>
 </table></div>`;
 
   return { subject, text, html };

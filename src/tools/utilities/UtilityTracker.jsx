@@ -20,6 +20,7 @@ import {
   startOfToday,
   toISO,
   totals,
+  isCancelled,
 } from "./deals.js";
 import "../_shared/loan/loan-tracker.css"; // cards, tiles, forms and tables shared with the loan trackers
 import "./utilities.css";
@@ -35,8 +36,7 @@ const money = (() => {
 })();
 const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 const DEAL_LENGTHS = [0, 1, 2, 3, 4, 6, 9, 12, 18, 24];
-const ORDER = { ended: 0, soon: 1, active: 2, upcoming: 3, none: 4 };
-
+const ORDER = { ended: 0, soon: 1, active: 2, upcoming: 3, none: 4, cancelled: 5 };
 
 // "internet", "gas"… or, for Other, the plan name ("car insurance").
 const kindOf = (s) => (s.type === "other" ? (s.plan || "").toLowerCase() : TYPES[s.type]?.label.toLowerCase() ?? "");
@@ -63,6 +63,8 @@ export default function UtilityTracker() {
   const [pending, setPending] = useState(null); // deal to move into "Past providers" once the edit is saved
 
   const sum = useMemo(() => totals(state, today), [state, today]);
+  const live = state.services.filter((s) => !isCancelled(s)).length;
+  const cancelledCount = state.services.length - live;
   const { ended } = useMemo(() => alerts(state, today), [state, today]);
   const sorted = useMemo(
     () =>
@@ -105,7 +107,11 @@ export default function UtilityTracker() {
     startNew(s.type);
     setPending({ old: s, reason: "Switched provider", replaces: s.id });
   };
-  const acknowledge = (s) => setState((st) => ({ ...st, services: st.services.map((x) => (x.id === s.id ? { ...x, acknowledged: true } : x)) }));
+  const patch = (s, p) => setState((st) => ({ ...st, services: st.services.map((x) => (x.id === s.id ? { ...x, ...p } : x)) }));
+  const acknowledge = (s) => patch(s, { acknowledged: true });
+  // Cancelled services stay on the list (moved to the end) but stop counting, alerting and emailing
+  const markCancelled = (s) => patch(s, { cancelledOn: toISO(today) });
+  const undoCancel = (s) => patch(s, { cancelledOn: "" });
   const remove = (s) => setState((st) => ({ ...st, services: st.services.filter((x) => x.id !== s.id) }));
   const removePast = (i) => setState((st) => ({ ...st, history: st.history.filter((_, j) => j !== i) }));
 
@@ -120,7 +126,9 @@ export default function UtilityTracker() {
         <div>
           <h1>Household Utilities</h1>
           <div className="sub">
-            {state.services.length ? `${plural(state.services.length, "service")} · intro deals and when they end` : "Your providers and when their intro deals end"}
+            {state.services.length
+              ? `${plural(live, "service")}${cancelledCount ? ` (+ ${cancelledCount} cancelled)` : ""} · intro deals and when they end`
+              : "Your providers and when their intro deals end"}
           </div>
         </div>
         <div className="head-actions">
@@ -161,6 +169,9 @@ export default function UtilityTracker() {
             </span>
           </div>
           <div className="head-actions">
+            <button className="btn" type="button" onClick={() => markCancelled(s)}>
+              Cancelled it
+            </button>
             <button className="btn" type="button" onClick={() => switchProvider(s)} disabled={!!editing}>
               Switched provider
             </button>
@@ -179,7 +190,7 @@ export default function UtilityTracker() {
           <div className="tile" style={{ "--c": "var(--accent)" }}>
             <span className="k">Paying now</span>
             <span className="v num">{money(sum.now)}/mo</span>
-            <span className="of">across {plural(state.services.length, "service")}</span>
+            <span className="of">across {plural(live, "service")}</span>
           </div>
           <div className="tile" style={{ "--c": "var(--soon)" }}>
             <span className="k">Once deals end</span>
@@ -223,6 +234,8 @@ export default function UtilityTracker() {
               onEdit={() => startEdit(s)}
               onNewDeal={() => newDeal(s)}
               onSwitch={() => switchProvider(s)}
+              onCancelled={() => markCancelled(s)}
+              onUndoCancel={() => undoCancel(s)}
               onRemove={() => remove(s)}
             />
           )
@@ -243,11 +256,13 @@ function StatusChip({ st }) {
     active: `${inWords(st.daysLeft ?? 0)} left`,
     soon: st.daysLeft === 1 ? "Ends tomorrow" : `Ends in ${plural(st.daysLeft ?? 0, "day")}`,
     ended: "Deal ended",
+    cancelled: "Cancelled",
   }[st.state];
   return <span className={`chip ut-chip-${st.state}`}>{text}</span>;
 }
 
-function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove }) {
+function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onCancelled, onUndoCancel, onRemove }) {
+  const cancelled = st.state === "cancelled";
   const [more, setMore] = useState(false);
   const [armed, setArmed] = useState(false);
   const type = TYPES[s.type] ?? TYPES.other;
@@ -300,10 +315,10 @@ function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove
             {bill.short}
           </span>
         )}
-        {s.billing !== "month" && <span className="ut-mo"> · about {money(cost.now)}/mo now</span>}
+        {s.billing !== "month" && !cancelled && <span className="ut-mo"> · about {money(cost.now)}/mo now</span>}
       </div>
 
-      {hasDeal(s) && st.state !== "upcoming" && (
+      {hasDeal(s) && st.state !== "upcoming" && !cancelled && (
         <div className="card-progress">
           <div className="bar ut-bar" role="progressbar" aria-label="Intro deal used" aria-valuenow={Math.round(st.pct)}>
             <i style={{ width: `${st.pct}%` }} />
@@ -313,7 +328,12 @@ function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove
 
       <div className="ut-meta">
         <span>Started {fmtDate(st.start)}</span>
-        {hasDeal(s) && (
+        {cancelled && (
+          <span>
+            Cancelled <b>{fmtDate(st.cancelledOn)}</b>
+          </span>
+        )}
+        {hasDeal(s) && !cancelled && (
           <span>
             Deal {st.state === "ended" ? "ended" : "ends"} <b>{fmtDate(st.end)}</b>
           </span>
@@ -332,7 +352,16 @@ function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove
         <button className="btn small" type="button" onClick={onEdit} disabled={busy}>
           Edit
         </button>
-        {hasDeal(s) && st.state !== "ended" && (
+        {cancelled ? (
+          <button className="btn small" type="button" onClick={onUndoCancel}>
+            Undo cancel
+          </button>
+        ) : (
+          <button className="btn small" type="button" onClick={onCancelled}>
+            Mark as cancelled
+          </button>
+        )}
+        {hasDeal(s) && st.state !== "ended" && !cancelled && (
           <button className="btn small" type="button" onClick={downloadCalendar}>
             {icons.calendar} Add to calendar
           </button>
@@ -342,12 +371,16 @@ function ServiceCard({ s, st, today, busy, onEdit, onNewDeal, onSwitch, onRemove
         </button>
         {more && (
           <>
-            <button className="btn small" type="button" onClick={onNewDeal} disabled={busy}>
-              Got a new deal
-            </button>
-            <button className="btn small" type="button" onClick={onSwitch} disabled={busy}>
-              Switched provider
-            </button>
+            {!cancelled && (
+              <>
+                <button className="btn small" type="button" onClick={onNewDeal} disabled={busy}>
+                  Got a new deal
+                </button>
+                <button className="btn small" type="button" onClick={onSwitch} disabled={busy}>
+                  Switched provider
+                </button>
+              </>
+            )}
             <button className="btn small danger" type="button" onClick={del}>
               {armed ? "Tap again to delete" : "Delete"}
             </button>

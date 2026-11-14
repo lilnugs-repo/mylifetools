@@ -17,7 +17,16 @@ const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0
 export const KINDS = {
   loans: { label: "Loan repayments", hint: "A repayment you haven't ticked off is coming up", on: true, days: 3 },
   trials: { label: "Subscription free trials", hint: "A free trial is about to turn into a paid plan", on: true, days: 3 },
-  utilities: { label: "Utility intro deals", hint: "An electricity, gas, internet or mobile deal is about to end", on: true, days: 7 },
+  utilities: {
+    label: "Utility intro deals",
+    hint: "An electricity, gas, internet or mobile deal is about to end",
+    on: true,
+    days: 7,
+    // Repeat every morning (also after the deal ends) until the service is marked cancelled,
+    // switched, given a new deal, or its "deal ended" banner is dismissed.
+    daily: true,
+    dailyLabel: "Email every day until I mark it cancelled or update it",
+  },
   renewals: { label: "Big subscription renewals", hint: "A 3-monthly, 6-monthly or yearly payment is coming up", on: false, days: 7 },
   warranties: { label: "Warranties", hint: "A warranty on something you own is about to end", on: false, days: 30 },
 };
@@ -25,7 +34,7 @@ export const DAY_OPTIONS = [1, 2, 3, 5, 7, 10, 14, 21, 30, 60];
 
 export const defaultSettings = () => ({
   enabled: true,
-  kinds: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, { on: v.on, days: v.days }])),
+  kinds: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, { on: v.on, days: v.days, ...("daily" in v && { daily: v.daily }) }])),
 });
 
 export function shapeSettings(v) {
@@ -105,24 +114,32 @@ export function collect(data, settings, today) {
     });
   }
 
-  // Utility intro deals ending
+  // Utility intro deals ending. With `daily`, the reminder repeats every morning, and keeps
+  // going after the deal ends, until the service is cancelled, switched, re-dealt or dismissed.
   const services = utilities.shapeState(data.utilities)?.services ?? [];
+  const util = s.kinds.utilities;
   for (const sv of services) {
-    if (!utilities.hasDeal(sv)) continue;
+    if (!util?.on || !utilities.hasDeal(sv)) continue;
     const st = utilities.dealStatus(sv, today);
-    if (st.state === "upcoming") continue;
-    const days = within("utilities", st.end);
-    if (days == null) continue;
+    if (st.state === "upcoming" || st.state === "cancelled") continue;
+    const days = daysUntil(st.end, today);
+    const daily = !!util.daily;
+    if (days > util.days || (days < 0 && (!daily || sv.acknowledged))) continue;
     const per = utilities.BILLING[sv.billing]?.short ?? "/mo";
     const type = sv.type === "other" ? sv.plan || "Other" : utilities.TYPES[sv.type]?.label ?? "Utility";
+    const prices = `${aud(Number(sv.promoPrice) || 0)}${per} to ${aud(Number(sv.regularPrice) || 0)}${per}`;
     out.push({
-      key: `utilities:${sv.id}:deal:${iso(st.end)}`,
+      // Daily reminders get a new key each day, so each morning sends again
+      key: `utilities:${sv.id}:deal:${iso(st.end)}${daily ? `:${iso(today)}` : ""}`,
       kind: "utilities",
       tool: "utilities",
-      title: `${type} deal with ${sv.provider || "your provider"} ends`,
-      detail: `Goes from ${aud(Number(sv.promoPrice) || 0)}${per} to ${aud(Number(sv.regularPrice) || 0)}${per}. Time to shop around?`,
+      title: `${type} deal with ${sv.provider || "your provider"} ${days < 0 ? "ended" : "ends"}`,
+      detail:
+        (days < 0 ? `You're now paying ${aud(Number(sv.regularPrice) || 0)}${per} instead of ${aud(Number(sv.promoPrice) || 0)}${per}.` : `Goes from ${prices}.`) +
+        (daily ? " You'll get this every day until you mark it cancelled or update it in Household Utilities." : " Time to shop around?"),
       date: iso(st.end),
       days,
+      daily,
     });
   }
 
@@ -148,5 +165,6 @@ export function collect(data, settings, today) {
   return out.sort((a, b) => a.days - b.days || a.title.localeCompare(b.title));
 }
 
-/** "today", "tomorrow", "in 3 days" */
-export const whenText = (days) => (days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`);
+/** "today", "tomorrow", "in 3 days", "yesterday", "3 days ago" */
+export const whenText = (days) =>
+  days === 0 ? "today" : days === 1 ? "tomorrow" : days === -1 ? "yesterday" : days < 0 ? `${-days} days ago` : `in ${days} days`;

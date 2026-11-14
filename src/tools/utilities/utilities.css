@@ -57,3 +57,9 @@ td a { color: var(--accent); text-decoration: none; font-weight: 600 }
   .ut-top { flex-wrap: wrap }
   .ut-top .chip { order: 3 }
 }
+
+/* Cancelled: kept for the record, at the end of the list */
+.ut-card[data-state="cancelled"] { background: transparent; border-style: dashed; border-left-style: solid }
+.ut-card[data-state="cancelled"] .ut-who b, .ut-card[data-state="cancelled"] .ut-price .ut-now { color: var(--muted) }
+.ut-card[data-state="cancelled"] .ut-top .ico { background: var(--sunk); color: var(--muted) }
+.ut-chip-cancelled { background: var(--sunk); color: var(--muted) }

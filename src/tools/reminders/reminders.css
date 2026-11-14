@@ -28,3 +28,8 @@
   .rm-list li { flex-wrap: wrap }
   .rm-when { width: 100%; flex-direction: row; gap: 6px; align-items: baseline }
 }
+
+/* "Email every day until…" under a reminder kind */
+.rm-kind .rm-daily { flex: 1 1 100%; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); padding-left: 52px; cursor: pointer }
+.rm-daily input { accent-color: var(--accent); width: 16px; height: 16px; position: static; opacity: 1 }
+@media (max-width: 520px) { .rm-kind .rm-daily { padding-left: 0 } }
