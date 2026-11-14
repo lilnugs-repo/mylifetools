@@ -30,7 +30,8 @@ const money = (() => {
 })();
 const fmtDay = (d) => d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
 const fmtDate = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
-const SHOW = 8; // rows shown before "Show older"
+const AHEAD = 10; // upcoming dates listed (counting the next one due)
+const RECENT = 12; // past dates shown before "Show older"
 
 export default function RentPayday() {
   const { state, setState, status, statusText } = useCloudState({
@@ -110,6 +111,7 @@ export default function RentPayday() {
             )
           }
           done={!!cotenant.paid[toISO(cCo.date)]}
+          doneText="Received"
         />
       </section>
 
@@ -152,11 +154,11 @@ export default function RentPayday() {
 
 /* ---------- sections ---------- */
 
-function Countdown({ c, tone, sub, amount, note, warn, action, done }) {
+function Countdown({ c, tone, sub, amount, note, warn, action, done, doneText = "Paid" }) {
   return (
-    <div className={`rp-card rp-${tone}`} data-soon={c.days <= 2 ? "1" : undefined}>
+    <div className={`rp-card rp-${tone}`} data-soon={c.days <= 2 && !done ? "1" : undefined} data-done={done ? "1" : undefined}>
       <span className="rp-label">{c.label}</span>
-      <b className="rp-big">{c.days === 0 ? "Today" : c.days === 1 ? "Tomorrow" : `${c.days} days`}</b>
+      <b className="rp-big">{done ? `${doneText} ✓` : c.days === 0 ? "Today" : c.days === 1 ? "Tomorrow" : `${c.days} days`}</b>
       <span className="rp-date">
         {fmtDay(c.date)}
         {amount && <span className="num"> · {amount}</span>}
@@ -164,7 +166,7 @@ function Countdown({ c, tone, sub, amount, note, warn, action, done }) {
       {sub && <span className="rp-sub">{sub}</span>}
       {(note || action || done) && (
         <span className="rp-foot">
-          {done && <span className="chip">Ticked off</span>}
+          {done && <span className="rp-sub">Due {c.days === 0 ? "today" : inDays(c.days)}</span>}
           {note && <span className={warn ? "rp-warn" : "rp-sub"}>{note}</span>}
           {action}
         </span>
@@ -175,8 +177,9 @@ function Countdown({ c, tone, sub, amount, note, warn, action, done }) {
 
 function Ledger({ title, sched, today, verb, onTick, tiles }) {
   const [all, setAll] = useState(false);
-  const rows = dates(sched, today, 4);
-  const shown = all ? rows : rows.slice(0, SHOW);
+  const rows = dates(sched, today, AHEAD); // newest first: upcoming, then past
+  const limit = rows.filter((d) => d >= today).length + RECENT;
+  const shown = all ? rows : rows.slice(0, limit);
   const nextDue = next(sched, today);
   return (
     <section className="stack" aria-label={title}>
@@ -214,9 +217,9 @@ function Ledger({ title, sched, today, verb, onTick, tiles }) {
           );
         })}
       </ul>
-      {rows.length > SHOW && (
+      {rows.length > limit && (
         <button className="btn small rp-more" type="button" onClick={() => setAll((v) => !v)}>
-          {all ? "Show fewer" : `Show older (${rows.length - SHOW})`}
+          {all ? "Show fewer" : `Show older (${rows.length - limit})`}
         </button>
       )}
     </section>

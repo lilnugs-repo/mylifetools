@@ -106,9 +106,15 @@ export function homeCountdowns() {
   const today = startOfToday();
   const st = state ?? defaults();
   const owing = unpaid(st.cotenant, today).length;
-  return countdowns(st, today).map((c) => ({
-    ...c,
-    text: `${c.short} ${inDays(c.days)}`,
-    warn: c.key === "cotenant" && owing > 0 ? `${st.cotenant.name || "Co-tenant"} owes ${owing} payment${owing > 1 ? "s" : ""}` : null,
-  }));
+  const who = st.cotenant.name || "Co-tenant";
+  return countdowns(st, today).map((c) => {
+    // Already ticked off for the next date: say so instead of counting down
+    const paid = c.key !== "payday" && !!st[c.key].paid?.[toISO(c.date)];
+    return {
+      ...c,
+      paid,
+      text: paid ? (c.key === "rent" ? "Rent paid ✓" : `${who} has paid ✓`) : `${c.short} ${inDays(c.days)}`,
+      warn: c.key === "cotenant" && owing > 0 ? `${who} owes ${owing} payment${owing > 1 ? "s" : ""}` : null,
+    };
+  });
 }

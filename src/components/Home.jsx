@@ -25,10 +25,17 @@ export default function Home({ needsPin }) {
       {strip.length > 0 && (
         <nav className="home-countdowns" aria-label="Coming up">
           {strip.map((c) => (
-            <a key={`${c.tool.id}-${c.key}`} href={`#/${c.tool.id}`} onClick={onOpen(c.tool)} style={{ "--c": CD_COLOR[c.key] }}>
+            <a
+              key={`${c.tool.id}-${c.key}`}
+              href={`#/${c.tool.id}`}
+              onClick={onOpen(c.tool)}
+              style={{ "--c": c.paid ? "var(--ok)" : CD_COLOR[c.key] }}
+              data-paid={c.paid ? "1" : undefined}
+            >
               <b>{c.text}</b>
               <small className={c.warn ? "cd-warn" : undefined}>
-                {c.warn ?? c.date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}
+                {c.warn ??
+                  `${c.paid ? "Due " : ""}${c.date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}`}
               </small>
             </a>
           ))}

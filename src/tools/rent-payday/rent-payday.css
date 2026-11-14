@@ -5,6 +5,8 @@
 .rp-rent { --c: var(--interest) }
 .rp-co { --c: var(--accent) }
 .rp-card[data-soon] { background: color-mix(in srgb, var(--c) 8%, var(--surface)) }
+.rp-card[data-done] { --c: var(--ok) }
+.rp-card[data-done] .rp-big { color: var(--ok) }
 .rp-label { font-size: 12px; font-weight: 700; color: var(--muted) }
 .rp-big { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--fg) }
 .rp-date { font-size: 14px; font-weight: 600 }
