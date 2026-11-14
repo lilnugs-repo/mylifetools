@@ -76,10 +76,30 @@ export function buildEmail(items, appUrl, { test = false } = {}) {
     : "Heads up, these need your attention:";
   const link = (i) => (appUrl ? `${appUrl}/#/${i.tool}` : "");
 
+  // Money details: each section as "Heading" then "  Label: value" lines (text), or a small table (HTML)
+  const factsText = (i) =>
+    (i.facts || []).flatMap((f) => [`  ${f.heading}`, ...f.rows.map(([k, v]) => `    ${k}: ${v}`)]);
+  const factsHtml = (i) =>
+    (i.facts || [])
+      .map(
+        (f) => `<table role="presentation" style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px">
+  <tr><td colspan="2" style="font-weight:700;color:#4d6b51;padding:0 0 4px">${escapeHtml(f.heading)}</td></tr>
+  ${f.rows
+    .map(
+      ([k, v]) =>
+        `<tr><td style="color:#75695c;padding:3px 12px 3px 0;border-top:1px solid #efe7da;white-space:nowrap;vertical-align:top">${escapeHtml(k)}</td><td style="color:#2f2a24;padding:3px 0;border-top:1px solid #efe7da;text-align:right;font-variant-numeric:tabular-nums">${escapeHtml(v)}</td></tr>`
+    )
+    .join("")}
+</table>`
+      )
+      .join("");
+
   const text = [
     intro,
     "",
-    ...items.flatMap((i) => [`• ${i.title}, ${whenText(i.days)} (${fmtDate(i.date)})`, `  ${i.detail}`, link(i) && `  ${link(i)}`, ""]).filter((l) => l !== ""),
+    ...items
+      .flatMap((i) => [`• ${i.title}, ${whenText(i.days)} (${fmtDate(i.date)})`, `  ${i.detail}`, ...factsText(i), link(i) && `  ${link(i)}`, ""])
+      .filter((l) => l !== ""),
     "",
     "You get these because email reminders are on in My Life Tools. Change them with the Notifications button at the top of the app.",
   ].join("\n");
@@ -90,7 +110,8 @@ export function buildEmail(items, appUrl, { test = false } = {}) {
   <div style="font-size:12px;color:#a5532d;font-weight:700">${escapeHtml(whenText(i.days)[0].toUpperCase() + whenText(i.days).slice(1))} · ${escapeHtml(fmtDate(i.date))}</div>
   <div style="font-size:16px;font-weight:700;color:#2f2a24;margin:2px 0">${escapeHtml(i.title)}</div>
   <div style="font-size:14px;color:#75695c">${escapeHtml(i.detail)}</div>
-  ${link(i) ? `<a href="${escapeHtml(link(i))}" style="font-size:14px;color:#4d6b51;font-weight:700;text-decoration:none">Open in My Life Tools →</a>` : ""}
+  ${factsHtml(i)}
+  ${link(i) ? `<div style="margin-top:10px"><a href="${escapeHtml(link(i))}" style="font-size:14px;color:#4d6b51;font-weight:700;text-decoration:none">Open in My Life Tools →</a></div>` : ""}
 </td></tr>`
     )
     .join("");

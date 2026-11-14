@@ -3,7 +3,7 @@
 // (api/notify.js) and the Email Reminders screen use exactly the same rules.
 import carLoan from "../car-loan/config.js";
 import homeLoan from "../home-loan/config.js";
-import { buildSchedule } from "../_shared/loan/loan.js";
+import { buildSchedule, summarise } from "../_shared/loan/loan.js";
 import { makeLoanShape } from "../_shared/loan/fixed.js";
 import * as utilities from "../utilities/deals.js";
 import * as subscriptions from "../subscriptions/subs.js";
@@ -62,11 +62,56 @@ function makeMoney({ symbol, locale }) {
   return (n) => symbol + nf.format(n);
 }
 const aud = makeMoney({ symbol: "$", locale: "en-AU" });
+const fmtD = (d) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+/**
+ * Where a loan stands: what's been paid (ticked off) and what's left, as fact sections.
+ * "Left" figures follow the repayment schedule (interest still to come assumes it runs to term).
+ */
+function loanSummary(cfg, principal, rows, paid, today) {
+  const money = makeMoney(cfg.currency);
+  const t = summarise(rows, paid);
+  const paidRows = rows.filter((r) => paid[r.n]);
+  const left = rows.filter((r) => !paid[r.n]);
+  const balance = left.reduce((a, r) => a + r.principal, 0);
+  const totalPaid = t.principalPaid + t.interestPaid + t.feesPaid;
+  const leftTotal = left.reduce((a, r) => a + r.payment + (Number(r.fee) || 0), 0);
+  const leftInterest = left.reduce((a, r) => a + r.interest, 0);
+  const leftFees = left.reduce((a, r) => a + (Number(r.fee) || 0), 0);
+  const current = rows.find((r) => r.due >= today) ?? rows[rows.length - 1];
+  const pct = principal ? (t.principalPaid / principal) * 100 : 0;
+  return [
+    {
+      heading: "Paid so far",
+      rows: [
+        ["Repayments", `${paidRows.length} of ${rows.length}`],
+        ["Principal", `${money(t.principalPaid)} (${pct.toFixed(1)}% of ${money(principal)})`],
+        ["Interest", money(t.interestPaid)],
+        ...(t.feesPaid ? [["Fees", money(t.feesPaid)]] : []),
+        ["Total paid", money(totalPaid)],
+      ],
+    },
+    {
+      heading: "Left to pay",
+      rows: [
+        ["Balance owing", money(balance)],
+        ["Repayments left", String(left.length)],
+        ["Interest still to come", money(leftInterest)],
+        ...(leftFees ? [["Fees still to come", money(leftFees)]] : []),
+        ["Total still to pay", money(leftTotal)],
+        ...(current ? [["Interest rate now", `${Number(current.rate).toFixed(2)}% p.a.`]] : []),
+        ...(rows.length ? [["Last repayment", fmtD(rows[rows.length - 1].due)]] : []),
+      ],
+    },
+  ];
+}
 
 /**
  * Everything due within each kind's notice period, soonest first.
  * `data` maps tool id → that tool's saved data (or null), as stored by /api/state.
- * Each reminder: { key, kind, tool, title, detail, date (YYYY-MM-DD), days }.
+ * Each reminder: { key, kind, tool, title, detail, date (YYYY-MM-DD), days, facts }.
+ * `facts` are sections of money details for the email: [{ heading, rows: [[label, value]] }].
  * `key` is stable for one event, so the daily job sends each reminder once.
  */
 export function collect(data, settings, today) {
@@ -87,8 +132,21 @@ export function collect(data, settings, today) {
   for (const cfg of LOANS) {
     const st = makeLoanShape(cfg)(data[cfg.id]) ?? { settings: { ...cfg.defaults }, paid: { ...(cfg.defaultPaid || {}) } };
     const money = makeMoney(cfg.currency);
-    const unpaid = buildSchedule(st.settings, { onRateChange: cfg.onRateChange, dayCount: cfg.dayCount }).filter((r) => !st.paid[r.n]);
+    const rows = buildSchedule(st.settings, { onRateChange: cfg.onRateChange, dayCount: cfg.dayCount });
+    const unpaid = rows.filter((r) => !st.paid[r.n]);
     const amount = (r) => money(r.payment + (Number(r.fee) || 0));
+    const summary = loanSummary(cfg, Number(st.settings.principal) || 0, rows, st.paid, today);
+    const thisOne = (r) => ({
+      heading: `This repayment (${r.n} of ${rows.length})`,
+      rows: [
+        ["Amount", amount(r)],
+        ["Principal", money(r.principal)],
+        ["Interest", `${money(r.interest)} at ${Number(r.rate).toFixed(2)}% p.a.`],
+        ...(r.fee ? [["Account fee", money(r.fee)]] : []),
+        ["Due", fmtD(r.due)],
+        ["Balance after it", money(r.balance)],
+      ],
+    });
 
     const overdue = unpaid.filter((r) => r.due < today);
     if (loanDaily && s.kinds.loans.on && overdue.length) {
@@ -103,6 +161,17 @@ export function collect(data, settings, today) {
         date: iso(first.due),
         days: daysUntil(first.due, today),
         daily: true,
+        facts: [
+          {
+            heading: "Not ticked off",
+            rows: [
+              ["Repayments", n === 1 ? `Repayment ${first.n}` : `${n} (repayments ${first.n} to ${overdue[n - 1].n})`],
+              ["Total of these", money(overdue.reduce((a, r) => a + r.payment + (Number(r.fee) || 0), 0))],
+              ["Oldest due", fmtD(first.due)],
+            ],
+          },
+          ...summary,
+        ],
       });
     }
 
@@ -118,6 +187,7 @@ export function collect(data, settings, today) {
         date: iso(r.due),
         days,
         daily: loanDaily,
+        facts: [thisOne(r), ...summary],
       });
     }
   }
@@ -131,7 +201,22 @@ export function collect(data, settings, today) {
     const days = kind && within(kind, st.next);
     if (days == null) continue;
     const per = subscriptions.BILLING[sub.billing]?.short ?? "month";
+    const bill = subscriptions.BILLING[sub.billing]?.label ?? "Monthly";
     out.push({
+      facts: [
+        {
+          heading: kind === "trials" ? "After the trial" : "This payment",
+          rows: [
+            [kind === "trials" ? "Price" : "Amount", `${aud(subscriptions.price(sub))} (${bill.toLowerCase()})`],
+            ...(sub.billing !== "month" ? [["Per month", aud(subscriptions.perMonth(sub))]] : []),
+            ["Per year", aud(subscriptions.perYear(sub))],
+            [kind === "trials" ? "First charge" : "Charged on", fmtD(st.next)],
+            ...(sub.plan ? [["Plan", sub.plan]] : []),
+            ...(sub.paidWith ? [["Paid with", sub.paidWith]] : []),
+            ...(sub.account ? [["Account", sub.account]] : []),
+          ],
+        },
+      ],
       key: `subscriptions:${sub.id}:${kind}:${iso(st.next)}`,
       kind,
       tool: "subscriptions",
@@ -159,7 +244,32 @@ export function collect(data, settings, today) {
     const per = utilities.BILLING[sv.billing]?.short ?? "/mo";
     const type = sv.type === "other" ? sv.plan || "Other" : utilities.TYPES[sv.type]?.label ?? "Utility";
     const prices = `${aud(Number(sv.promoPrice) || 0)}${per} to ${aud(Number(sv.regularPrice) || 0)}${per}`;
+    const perMonth = utilities.BILLING[sv.billing]?.perMonth ?? 1;
+    const promoMo = (Number(sv.promoPrice) || 0) * perMonth;
+    const regMo = (Number(sv.regularPrice) || 0) * perMonth;
     out.push({
+      facts: [
+        {
+          heading: "Prices",
+          rows: [
+            ["Intro price", `${aud(Number(sv.promoPrice) || 0)}${per} for ${pl(sv.promoMonths, "month")}`],
+            ["Standard price", `${aud(Number(sv.regularPrice) || 0)}${per}`],
+            ...(sv.billing !== "month" ? [["Per month", `${aud(promoMo)} → ${aud(regMo)}`]] : []),
+            ["Extra per month", aud(regMo - promoMo)],
+            ["Extra per year", aud((regMo - promoMo) * 12)],
+            ["Saved by the deal", aud(utilities.savedSoFar(sv, today))],
+          ],
+        },
+        {
+          heading: "Plan",
+          rows: [
+            ["Provider", [sv.provider, sv.plan].filter(Boolean).join(" · ") || "—"],
+            ["Started", fmtD(st.start)],
+            [days < 0 ? "Deal ended" : "Deal ends", fmtD(st.end)],
+            ...(sv.account ? [["Account", sv.account]] : []),
+          ],
+        },
+      ],
       // Daily reminders get a new key each day, so each morning sends again
       key: `utilities:${sv.id}:deal:${iso(st.end)}${daily ? `:${iso(today)}` : ""}`,
       kind: "utilities",
@@ -190,6 +300,25 @@ export function collect(data, settings, today) {
       detail: `Check it over and claim any faults before then. Warranty kept: ${bigBuys.STORED[it.storedIn] ?? "not recorded"}${it.storedNote ? ` (${it.storedNote})` : ""}.`,
       date: iso(st.end),
       days,
+      facts: [
+        {
+          heading: "Purchase",
+          rows: [
+            ...(it.brand || it.model ? [["Item", [it.brand, it.model].filter(Boolean).join(" ")]] : []),
+            ...(bigBuys.price(it) ? [["Price paid", aud(bigBuys.price(it))]] : []),
+            ["Bought", `${fmtD(st.bought)}${it.store ? ` at ${it.store}` : ""}`],
+            ...(it.serial ? [["Serial", it.serial]] : []),
+          ],
+        },
+        {
+          heading: "Warranty",
+          rows: [
+            ["Cover ends", fmtD(st.end)],
+            ["Maker's warranty", pl(Number(it.warrantyMonths) || 0, "month")],
+            ...(Number(it.extMonths) ? [["Extended", `+ ${pl(Number(it.extMonths), "month")}${it.extProvider ? ` (${it.extProvider})` : ""}`]] : []),
+          ],
+        },
+      ],
     });
   }
 

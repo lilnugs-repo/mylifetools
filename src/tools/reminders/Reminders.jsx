@@ -200,6 +200,24 @@ export default function Reminders() {
                   <small>
                     {TOOL_NAMES[i.tool]} · {i.detail}
                   </small>
+                  {i.facts?.length > 0 && (
+                    <details className="rm-facts">
+                      <summary>Show the figures</summary>
+                      {i.facts.map((f) => (
+                        <div key={f.heading}>
+                          <b>{f.heading}</b>
+                          <dl>
+                            {f.rows.map(([k, v]) => (
+                              <div key={k}>
+                                <dt>{k}</dt>
+                                <dd className="num">{v}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      ))}
+                    </details>
+                  )}
                 </span>
                 <span className={`chip ${i.sent ? "rm-sent" : ""}`}>
                   {i.daily ? (i.sent ? "Emailed today" : "Emails daily") : i.sent ? "Emailed" : "Will email"}

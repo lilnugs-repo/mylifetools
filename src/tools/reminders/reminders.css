@@ -33,3 +33,13 @@
 .rm-kind .rm-daily { flex: 1 1 100%; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); padding-left: 52px; cursor: pointer }
 .rm-daily input { accent-color: var(--accent); width: 16px; height: 16px; position: static; opacity: 1 }
 @media (max-width: 520px) { .rm-kind .rm-daily { padding-left: 0 } }
+
+/* Money details under a "Coming up" item (the same figures as the email) */
+.rm-facts { margin-top: 4px; font-size: 13px }
+.rm-facts summary { cursor: pointer; color: var(--accent); font-weight: 700; font-size: 12px }
+.rm-facts > div { margin-top: 8px }
+.rm-facts b { font-size: 12px; color: var(--muted) }
+.rm-facts dl { margin: 2px 0 0 }
+.rm-facts dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-top: 1px solid var(--line) }
+.rm-facts dt { color: var(--muted) }
+.rm-facts dd { margin: 0; text-align: right }
