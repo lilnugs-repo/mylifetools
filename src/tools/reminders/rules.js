@@ -1,0 +1,152 @@
+// Email reminder rules: what's coming up across the tools, and how far ahead to
+// warn. Pure functions with no React or browser APIs, so the server's daily job
+// (api/notify.js) and the Email Reminders screen use exactly the same rules.
+import carLoan from "../car-loan/config.js";
+import homeLoan from "../home-loan/config.js";
+import { buildSchedule } from "../_shared/loan/loan.js";
+import { makeLoanShape } from "../_shared/loan/fixed.js";
+import * as utilities from "../utilities/deals.js";
+import * as subscriptions from "../subscriptions/subs.js";
+import * as bigBuys from "../big-buys/purchases.js";
+
+const DAY = 864e5;
+const daysUntil = (d, today) => Math.round((d - today) / DAY);
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Each kind of reminder, with its default switch and notice period. */
+export const KINDS = {
+  loans: { label: "Loan repayments", hint: "A repayment you haven't ticked off is coming up", on: true, days: 3 },
+  trials: { label: "Subscription free trials", hint: "A free trial is about to turn into a paid plan", on: true, days: 3 },
+  utilities: { label: "Utility intro deals", hint: "An electricity, gas, internet or mobile deal is about to end", on: true, days: 7 },
+  renewals: { label: "Big subscription renewals", hint: "A 3-monthly, 6-monthly or yearly payment is coming up", on: false, days: 7 },
+  warranties: { label: "Warranties", hint: "A warranty on something you own is about to end", on: false, days: 30 },
+};
+export const DAY_OPTIONS = [1, 2, 3, 5, 7, 10, 14, 21, 30, 60];
+
+export const defaultSettings = () => ({
+  enabled: true,
+  kinds: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, { on: v.on, days: v.days }])),
+});
+
+export function shapeSettings(v) {
+  if (!v || typeof v !== "object" || !v.kinds) return null;
+  const d = defaultSettings();
+  for (const k of Object.keys(KINDS)) d.kinds[k] = { ...d.kinds[k], ...(v.kinds[k] || {}) };
+  return { enabled: v.enabled !== false, kinds: d.kinds };
+}
+
+const LOANS = [carLoan, homeLoan];
+
+/** Where each tool's saved data comes from: the tool ids passed to `load`. */
+export const SOURCE_IDS = ["car-loan", "home-loan", "subscriptions", "utilities", "big-buys"];
+
+function makeMoney({ symbol, locale }) {
+  const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n) => symbol + nf.format(n);
+}
+const aud = makeMoney({ symbol: "$", locale: "en-AU" });
+
+/**
+ * Everything due within each kind's notice period, soonest first.
+ * `data` maps tool id → that tool's saved data (or null), as stored by /api/state.
+ * Each reminder: { key, kind, tool, title, detail, date (YYYY-MM-DD), days }.
+ * `key` is stable for one event, so the daily job sends each reminder once.
+ */
+export function collect(data, settings, today) {
+  const s = shapeSettings(settings) ?? defaultSettings();
+  const out = [];
+  const within = (kind, date) => {
+    const k = s.kinds[kind];
+    if (!k?.on || !date) return null;
+    const days = daysUntil(date, today);
+    return days >= 0 && days <= k.days ? days : null;
+  };
+
+  // Loan repayments not yet ticked off
+  for (const cfg of LOANS) {
+    const st = makeLoanShape(cfg)(data[cfg.id]) ?? { settings: { ...cfg.defaults }, paid: { ...(cfg.defaultPaid || {}) } };
+    const money = makeMoney(cfg.currency);
+    for (const r of buildSchedule(st.settings, { onRateChange: cfg.onRateChange, dayCount: cfg.dayCount })) {
+      if (st.paid[r.n]) continue;
+      const days = within("loans", r.due);
+      if (days == null) continue;
+      out.push({
+        key: `${cfg.id}:payment:${r.n}:${iso(r.due)}`,
+        kind: "loans",
+        tool: cfg.id,
+        title: `${cfg.title} repayment of ${money(r.payment + (Number(r.fee) || 0))} due`,
+        detail: `Repayment ${r.n}: ${money(r.principal)} principal · ${money(r.interest)} interest${r.fee ? ` · ${money(r.fee)} fee` : ""}. Tick it off once paid.`,
+        date: iso(r.due),
+        days,
+      });
+    }
+  }
+
+  // Subscriptions: free trials ending, and big renewals
+  const subs = subscriptions.shapeState(data.subscriptions)?.subs ?? [];
+  for (const sub of subs) {
+    const st = subscriptions.subStatus(sub, today);
+    const big = (subscriptions.BILLING[sub.billing]?.months ?? 0) >= 3;
+    const kind = st.state === "trial" ? "trials" : st.state === "active" && big ? "renewals" : null;
+    const days = kind && within(kind, st.next);
+    if (days == null) continue;
+    const per = subscriptions.BILLING[sub.billing]?.short ?? "month";
+    out.push({
+      key: `subscriptions:${sub.id}:${kind}:${iso(st.next)}`,
+      kind,
+      tool: "subscriptions",
+      title: kind === "trials" ? `${sub.name} free trial ends` : `${sub.name} renews`,
+      detail:
+        kind === "trials"
+          ? `You'll be charged ${aud(subscriptions.price(sub))} a ${per} from then unless you cancel.`
+          : `${aud(subscriptions.price(sub))} for the next ${per}.`,
+      date: iso(st.next),
+      days,
+    });
+  }
+
+  // Utility intro deals ending
+  const services = utilities.shapeState(data.utilities)?.services ?? [];
+  for (const sv of services) {
+    if (!utilities.hasDeal(sv)) continue;
+    const st = utilities.dealStatus(sv, today);
+    if (st.state === "upcoming") continue;
+    const days = within("utilities", st.end);
+    if (days == null) continue;
+    const per = utilities.BILLING[sv.billing]?.short ?? "/mo";
+    const type = sv.type === "other" ? sv.plan || "Other" : utilities.TYPES[sv.type]?.label ?? "Utility";
+    out.push({
+      key: `utilities:${sv.id}:deal:${iso(st.end)}`,
+      kind: "utilities",
+      tool: "utilities",
+      title: `${type} deal with ${sv.provider || "your provider"} ends`,
+      detail: `Goes from ${aud(Number(sv.promoPrice) || 0)}${per} to ${aud(Number(sv.regularPrice) || 0)}${per}. Time to shop around?`,
+      date: iso(st.end),
+      days,
+    });
+  }
+
+  // Warranties ending
+  const items = bigBuys.shapeState(data["big-buys"])?.items ?? [];
+  for (const it of items) {
+    if (it.gone) continue;
+    const st = bigBuys.warrantyStatus(it, today);
+    if (st.state !== "active" && st.state !== "soon") continue;
+    const days = within("warranties", st.end);
+    if (days == null) continue;
+    out.push({
+      key: `big-buys:${it.id}:warranty:${iso(st.end)}`,
+      kind: "warranties",
+      tool: "big-buys",
+      title: `${it.name || "An item"} warranty ends`,
+      detail: `Check it over and claim any faults before then. Warranty kept: ${bigBuys.STORED[it.storedIn] ?? "not recorded"}${it.storedNote ? ` (${it.storedNote})` : ""}.`,
+      date: iso(st.end),
+      days,
+    });
+  }
+
+  return out.sort((a, b) => a.days - b.days || a.title.localeCompare(b.title));
+}
+
+/** "today", "tomorrow", "in 3 days" */
+export const whenText = (days) => (days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`);

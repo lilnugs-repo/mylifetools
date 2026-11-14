@@ -70,6 +70,14 @@ export const tools = [
     badge: subsBadge,
     component: lazy(() => import("./subscriptions/Subscriptions.jsx")),
   },
+  {
+    id: "reminders",
+    name: "Email Reminders",
+    description: "An email when a repayment, trial or deal is close",
+    icon: "bell",
+    locked: true,
+    component: lazy(() => import("./reminders/Reminders.jsx")),
+  },
 ];
 
 export const findTool = (id) => tools.find((t) => t.id === id);

@@ -9,6 +9,7 @@ A lightweight React app (Vite) holding a directory of personal tools, deployed o
 3. **Household Utilities** (locked, $): electricity, gas, internet, mobile and anything else on an intro deal ("$45/mo for 6 months, then $75/mo"). Shows each provider, website and account number, how long is left on each deal, a banner when one has ended (and "ending soon" 14 days before), monthly totals now vs once deals end, savings so far, an "Add to calendar" (.ics) reminder, and a record of past providers. The home tile shows a badge when a deal has ended or is ending soon, read from this device's saved copy.
 4. **Big Buys & Warranties** (locked, $): a record of big purchases across 16 categories (phones, computers, appliances, furniture, vehicles, solar…), with date bought, store, price, serial number, manufacturer and extended warranty, and where the warranty and receipt are kept (email, cloud drive, paper folder…, plus a link). Shows how long each item is covered, flags warranties ending in the next 60 days (banner and home tile badge), offers a calendar reminder 30 days before cover ends, and keeps items you've sold or replaced. Search, filter by category and sort.
 5. **My Subscriptions** (locked, $): one place for everything you pay for on repeat (streaming, music, apps, cloud storage, gym…). Each has a price and billing cycle (weekly to yearly), the next payment date (rolled forward automatically), free trials, what it's paid with, the account, a manage/cancel link and "still worth it?". Shows the total per month and per year, payments in the next 30 days, spend by category, what cancelling the ones you're unsure about would save, a banner for trials ending within 7 days and big (3-monthly or longer) renewals within 14 days (also a home tile badge), calendar reminders, and pause / cancel with a record of cancelled ones.
+6. **Email Reminders** (locked): one email when something's close, nothing otherwise. Loan repayments not yet ticked off (default 3 days before), subscription free trials ending (3 days), utility intro deals ending (7 days), and optionally big subscription renewals and warranties ending. Each kind has its own switch and notice period. Shows what's coming up and whether it's been emailed, and has a **Send a test email** button. A Vercel Cron job checks once a day (see [Email reminders](#email-reminders)).
 
 ## How it fits together
 
@@ -23,6 +24,10 @@ Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ───�
                                                                    tools/big-buys.json
                                                                    tools/subscriptions.json
                                                                    tools/fixed-expenses.json
+                                                                   tools/reminders.json
+Vercel Cron (daily) ─ GET /api/notify ─▶ checks CRON_SECRET,
+                                  reads the tools above ────────▶  _system/reminders-sent.json
+                                  emails what's due via Resend
 localStorage: offline cache only
 ```
 
@@ -43,10 +48,13 @@ my-tools/                        # folder and Blob prefix keep the original name
 │   ├── session.js               # GET: am I logged in?
 │   ├── logout.js                # POST: clear cookie
 │   ├── state.js                 # GET/PUT a tool's data
+│   ├── notify.js                # email reminders: daily cron run, preview, test email
 │   └── _lib/                    # not routes (underscore)
 │       ├── auth.js              # cookie signing, PIN check, attempt limits
 │       ├── store.js             # private Blob read/write
+│       ├── reminders.js         # daily run, sent-once log, email body, Resend
 │       └── http.js
+├── vercel.json                  # cron schedule for /api/notify
 ├── index.html
 ├── package.json
 ├── vite.config.js
@@ -76,7 +84,8 @@ my-tools/                        # folder and Blob prefix keep the original name
         ├── utilities/           # UtilityTracker.jsx, deals.js (status, totals, .ics, home badge), utilities.css
         ├── big-buys/            # BigBuys.jsx, purchases.js (categories, warranty status, badge), big-buys.css
         ├── subscriptions/       # Subscriptions.jsx, subs.js (billing cycles, next payment, totals, badge), subscriptions.css
-        └── fixed-expenses/      # FixedExpenses.jsx, fixed.js (sources, currency, periods, home total), fixed-expenses.css
+        ├── fixed-expenses/      # FixedExpenses.jsx, fixed.js (sources, currency, periods, home total), fixed-expenses.css
+        └── reminders/           # Reminders.jsx (settings screen), rules.js (what's due; shared with the server)
 ```
 
 ## Environment variables
@@ -87,6 +96,12 @@ my-tools/                        # folder and Blob prefix keep the original name
 | `SESSION_SECRET` | Signs the login cookie. 32+ characters | Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `PIN_KEY` | The 4-digit PIN that unlocks the tools | You |
 | `SESSION_DAYS` | Optional. Days a login lasts (default 7) | You |
+| `RESEND_API_KEY` | Sends reminder emails | [resend.com](https://resend.com) → API Keys |
+| `NOTIFY_EMAIL` | Where reminders go (comma-separate for more than one) | You. Without your own domain in Resend, use the address your Resend account is under |
+| `CRON_SECRET` | Lets only Vercel's scheduler trigger the daily check | Any long random text, e.g. the same command as `SESSION_SECRET` |
+| `NOTIFY_FROM` | Optional. Sender, default `My Life Tools <onboarding@resend.dev>` | Your verified Resend domain, e.g. `My Life Tools <reminders@yourdomain.com>` |
+| `NOTIFY_TZ` | Optional. Whose "today" counts, default `Australia/Sydney` | You |
+| `APP_URL` | Optional. Link used in emails, default the site's own address | You |
 
 `.env.local` only feeds local development. **For the live site, add `SESSION_SECRET` and `PIN_KEY` (and `SESSION_DAYS` if used) in Vercel → Project → Settings → Environment Variables**, then redeploy. Changing `SESSION_SECRET` signs everyone out.
 
@@ -95,6 +110,14 @@ my-tools/                        # folder and Blob prefix keep the original name
 1. **Blob store:** Vercel → your project → Storage → Create → Blob → set access to **Private** → connect it to the project.
 2. **Env vars:** add `SESSION_SECRET` and `PIN_KEY` in the project settings (above).
 3. **Deploy:** push to GitHub and import the repo in Vercel (Vite is detected automatically), or run `vercel --prod`.
+
+## Email reminders
+
+1. Sign up at [resend.com](https://resend.com) (free tier is plenty) and create an API key.
+2. In Vercel → Project → Settings → Environment Variables add `RESEND_API_KEY`, `NOTIFY_EMAIL` and `CRON_SECRET` (table above), then redeploy.
+3. Open **Email Reminders** in the app and tap **Send a test email**.
+
+The daily check is set in `vercel.json` for 21:00 UTC (8am in Sydney in summer, 7am in winter). On the Hobby plan Vercel runs it once a day, sometime within that hour. Each reminder is sent once (logged in `_system/reminders-sent.json`); a day with nothing new due sends nothing. The rules for what's "due" live in `src/tools/reminders/rules.js` and are the same ones the settings screen previews.
 
 ## Run locally
 

@@ -1,0 +1,30 @@
+/* Email Reminders. Switch rows reuse .fx-toggle / .fx-switch from base.css. */
+.rm-setup { background: var(--soon-soft); border: 1px solid var(--soon); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px }
+.rm-setup strong { color: var(--soon); font-size: 15px }
+.rm-setup ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px }
+.rm-setup ul { margin: 4px 0 0; padding-left: 18px }
+.rm-setup a { color: var(--accent); font-weight: 700 }
+.rm-setup code, .rm-coming code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface); border-radius: 4px; padding: 0 4px }
+
+.rm-kind[data-off] { opacity: .55 }
+.rm-days select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; color: var(--fg) }
+.rm-days select:disabled { opacity: .6 }
+
+.rm-coming { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px }
+.rm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.rm-list li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line) }
+.rm-when { flex: none; width: 86px; font-weight: 700; font-size: 14px; display: flex; flex-direction: column }
+.rm-when small, .rm-what small { font-size: 12px; color: var(--muted); font-weight: 400 }
+.rm-what { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.rm-what a { font-weight: 700; color: var(--fg); text-decoration: none }
+.rm-what a:hover { color: var(--accent) }
+.rm-list .chip { margin-top: 0; white-space: nowrap; flex: none }
+.chip.rm-sent { background: var(--sunk); color: var(--muted) }
+.rm-msg { margin: 0; font-size: 13px; font-weight: 600 }
+.rm-msg.ok { color: var(--ok) }
+.rm-msg.err { color: var(--warn) }
+
+@media (max-width: 520px) {
+  .rm-list li { flex-wrap: wrap }
+  .rm-when { width: 100%; flex-direction: row; gap: 6px; align-items: baseline }
+}

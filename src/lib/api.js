@@ -43,4 +43,5 @@ export const api = {
   logout: () => call("/api/logout", { method: "POST" }),
   getState: (tool) => call(`/api/state?tool=${encodeURIComponent(tool)}`),
   putState: (tool, data) => call(`/api/state?tool=${encodeURIComponent(tool)}`, { method: "PUT", body: JSON.stringify({ data }) }),
+  notify: (action) => call("/api/notify", { method: "POST", body: JSON.stringify({ action }) }),
 };
