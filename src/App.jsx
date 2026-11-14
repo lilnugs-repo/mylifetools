@@ -6,6 +6,7 @@ import { findTool } from "./tools/registry.js";
 import { api } from "./lib/api.js";
 import { useHashRoute } from "./lib/useHashRoute.js";
 import { useTheme } from "./lib/theme.js";
+import { releaseKeyboard } from "./lib/keyboard.js";
 
 export default function App() {
   const route = useHashRoute();
@@ -34,6 +35,11 @@ export default function App() {
 
   const needsGate = tool && tool.locked && auth !== "in";
   const Tool = tool?.component;
+
+  // A tile tap may have raised the keyboard for the PIN; let it go if no PIN screen follows
+  useEffect(() => {
+    if (!(needsGate && auth !== "in")) releaseKeyboard();
+  }, [needsGate, auth]);
 
   const lock = async () => {
     try {
@@ -73,7 +79,7 @@ export default function App() {
         </div>
       </div>
 
-      {!tool && <Home />}
+      {!tool && <Home needsPin={auth !== "in"} />}
       {needsGate && auth === "checking" && <div className="wrap loading">Checking your session…</div>}
       {needsGate && auth === "out" && <PinGate tool={tool} onUnlock={() => setAuth("in")} />}
       {tool && !needsGate && (

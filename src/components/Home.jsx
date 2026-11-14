@@ -1,7 +1,13 @@
 import { tools } from "../tools/registry.js";
 import { icons } from "./icons.jsx";
+import { primeKeyboard } from "../lib/keyboard.js";
 
-export default function Home() {
+/** `needsPin`: not logged in, so tapping a locked tool opens the PIN screen. */
+export default function Home({ needsPin }) {
+  // Bring the number keyboard up during the tap, ready for the PIN screen
+  const onOpen = (t) => () => {
+    if (t.locked && needsPin) primeKeyboard();
+  };
   const featured = tools.filter((t) => t.featured);
   const rest = tools.filter((t) => !t.featured);
   return (
@@ -10,14 +16,14 @@ export default function Home() {
         <h1>Adulting, but make it organised.</h1>
         <p>
           Loans, bills, warranties and that streaming service you forgot you pay for, all in one place. Tap a tile and get
-          sorting. The ones with a padlock want your secret PIN once per login. (No, it's not 1234. Is it?)
+          sorting.
         </p>
       </div>
 
       {featured.map((t) => {
         const h = t.headline?.();
         return (
-          <a key={t.id} className="tool-hero" href={`#/${t.id}`}>
+          <a key={t.id} className="tool-hero" href={`#/${t.id}`} onClick={onOpen(t)}>
             <span className="ico">{icons[t.icon] ?? icons.plus}</span>
             <span className="hero-text">
               <span className="name">{t.name}</span>
@@ -41,7 +47,7 @@ export default function Home() {
         {rest.map((t) => {
           const badge = t.badge?.();
           return (
-            <a key={t.id} className="tool-tile" href={`#/${t.id}`}>
+            <a key={t.id} className="tool-tile" href={`#/${t.id}`} onClick={onOpen(t)}>
               <span className="ico">{icons[t.icon] ?? icons.plus}</span>
               {t.locked && <span className="lock" title="Locked">{icons.lock}</span>}
               <span className="name">{t.name}</span>

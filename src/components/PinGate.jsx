@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { icons } from "./icons.jsx";
 import { api } from "../lib/api.js";
+import { releaseKeyboard } from "../lib/keyboard.js";
 
 const LENGTH = 4;
 
@@ -24,7 +25,10 @@ export default function PinGate({ tool, onUnlock }) {
 
   // Keep the boxes ready to type into: on open, after a wrong try, and when a lockout ends
   useEffect(() => {
-    if (!busy && !lockedOut) inputRef.current?.focus();
+    if (!busy && !lockedOut) {
+      inputRef.current?.focus();
+      releaseKeyboard(); // the PIN boxes now hold the keyboard a tile tap raised
+    }
   }, [busy, lockedOut]);
   useEffect(() => {
     if (!lockedOut) return;
