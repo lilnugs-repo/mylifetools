@@ -1,13 +1,8 @@
 import { tools } from "../tools/registry.js";
 import { icons } from "./icons.jsx";
-import { primeKeyboard } from "../lib/keyboard.js";
 
-/** `needsPin`: not logged in, so tapping a locked tool opens the PIN screen. */
-export default function Home({ needsPin }) {
-  // Bring the number keyboard up during the tap, ready for the PIN screen
-  const onOpen = (t) => () => {
-    if (t.locked && needsPin) primeKeyboard();
-  };
+/** Shown once the PIN is in (App.jsx). `syncing`: App is pulling every tool's latest data (see syncAll). */
+export default function Home({ syncing }) {
   const featured = tools.filter((t) => t.featured && !t.hidden);
   const rest = tools.filter((t) => !t.featured && !t.hidden);
   const strip = tools.flatMap((t) => (t.countdowns?.() ?? []).map((c) => ({ ...c, tool: t })));
@@ -28,7 +23,6 @@ export default function Home({ needsPin }) {
             <a
               key={`${c.tool.id}-${c.key}`}
               href={`#/${c.tool.id}`}
-              onClick={onOpen(c.tool)}
               style={{ "--c": c.paid ? "var(--ok)" : CD_COLOR[c.key] }}
               data-paid={c.paid ? "1" : undefined}
             >
@@ -45,7 +39,7 @@ export default function Home({ needsPin }) {
       {featured.map((t) => {
         const h = t.headline?.();
         return (
-          <a key={t.id} className="tool-hero" href={`#/${t.id}`} onClick={onOpen(t)}>
+          <a key={t.id} className="tool-hero" href={`#/${t.id}`}>
             <span className="ico">{icons[t.icon] ?? icons.plus}</span>
             <span className="hero-text">
               <span className="name">{t.name}</span>
@@ -54,10 +48,10 @@ export default function Home({ needsPin }) {
             {h ? (
               <span className="hero-fig num">
                 {h.value}
-                <small>{h.per}</small>
+                <small>{syncing ? "Updating…" : h.per}</small>
               </span>
             ) : (
-              <span className="hero-fig hero-go">Open →</span>
+              <span className="hero-fig hero-go">{syncing ? "Updating…" : "Open →"}</span>
             )}
           </a>
         );
@@ -68,7 +62,7 @@ export default function Home({ needsPin }) {
         {rest.map((t) => {
           const badge = t.badge?.();
           return (
-            <a key={t.id} className="tool-tile" href={`#/${t.id}`} onClick={onOpen(t)}>
+            <a key={t.id} className="tool-tile" href={`#/${t.id}`}>
               <span className="ico">{icons[t.icon] ?? icons.plus}</span>
               <span className="name">{t.name}</span>
               <span className="desc">{t.description}</span>

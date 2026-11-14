@@ -36,9 +36,11 @@ localStorage: offline cache only
 
 - The PIN is only in the `PIN_KEY` env var on the server. It isn't in the browser code.
 - After 5 wrong tries in 15 minutes, logins are paused for 15 minutes, and no more than 15 wrong tries are allowed in 24 hours (a 4-digit PIN has only 10,000 combinations).
+- The PIN screen comes first: nothing (home screen or any tool) shows until it's entered, and one PIN opens everything. A link to a tool (e.g. from a reminder email) opens that tool straight after the PIN.
 - A login lasts 7 days (`SESSION_DAYS`). **Lock** in the top bar signs out.
 - Every save writes the whole tool file (last write wins). Reads bypass Blob's cache, so you always get the latest save.
-- If the server can't be reached, edits are kept in the browser and uploaded next time the tool opens.
+- If the server can't be reached, edits are kept in the browser and uploaded next time the tool opens (or the home screen opens while logged in).
+- Each time the home screen opens while logged in, every tool's latest data is pulled in the background (`src/lib/syncAll.js`), so the Fixed Expenses total, badges and countdowns are current without opening each tool. Nothing can be fetched without the PIN.
 
 ## Project structure
 

@@ -6,7 +6,7 @@ import { findTool } from "./tools/registry.js";
 import { api } from "./lib/api.js";
 import { useHashRoute } from "./lib/useHashRoute.js";
 import { useTheme } from "./lib/theme.js";
-import { releaseKeyboard } from "./lib/keyboard.js";
+import { syncAll } from "./lib/syncAll.js";
 
 export default function App() {
   const route = useHashRoute();
@@ -33,13 +33,20 @@ export default function App() {
     if (route && !tool) window.location.hash = "#/";
   }, [route, tool]);
 
-  const needsGate = tool && tool.locked && auth !== "in";
   const Tool = tool?.component;
 
-  // A tile tap may have raised the keyboard for the PIN; let it go if no PIN screen follows
+  // Each time the home screen opens while logged in, pull every tool's latest data so the
+  // tiles (Fixed Expenses total, badges, countdowns) are current; then redraw them.
+  const [sync, setSync] = useState({ state: "idle", n: 0 });
   useEffect(() => {
-    if (!(needsGate && auth !== "in")) releaseKeyboard();
-  }, [needsGate, auth]);
+    if (tool || auth !== "in") return;
+    let alive = true;
+    setSync((s) => ({ ...s, state: "syncing" }));
+    syncAll().then((state) => alive && setSync((s) => ({ state, n: s.n + 1 })));
+    return () => {
+      alive = false;
+    };
+  }, [tool, auth]);
 
   const lock = async () => {
     try {
@@ -52,7 +59,7 @@ export default function App() {
   return (
     <>
       <div className="topbar">
-        {tool ? (
+        {tool && auth === "in" ? (
           <a className="btn" href="#/">
             {icons.back} All tools
           </a>
@@ -62,6 +69,7 @@ export default function App() {
           </a>
         )}
         <div className="head-actions">
+          {auth === "in" && (
           <a
             className="btn tb-notify"
             href="#/reminders"
@@ -72,6 +80,7 @@ export default function App() {
             {icons.bell}
             <span className="tb-label">Notifications</span>
           </a>
+          )}
           <button
             className="btn icon"
             type="button"
@@ -89,10 +98,11 @@ export default function App() {
         </div>
       </div>
 
-      {!tool && <Home needsPin={auth !== "in"} />}
-      {needsGate && auth === "checking" && <div className="wrap loading">Checking your session…</div>}
-      {needsGate && auth === "out" && <PinGate tool={tool} onUnlock={() => setAuth("in")} />}
-      {tool && !needsGate && (
+      {/* One PIN, on the way in: nothing (home or any tool) shows until it's entered */}
+      {auth === "checking" && <div className="wrap loading">Checking your session…</div>}
+      {auth === "out" && <PinGate tool={tool} onUnlock={() => setAuth("in")} />}
+      {auth === "in" && !tool && <Home key={sync.n} syncing={sync.state === "syncing"} />}
+      {auth === "in" && tool && (
         <Suspense fallback={<div className="wrap loading">Loading {tool.name}…</div>}>
           <Tool />
         </Suspense>

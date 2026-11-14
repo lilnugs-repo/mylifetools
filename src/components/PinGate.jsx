@@ -12,7 +12,11 @@ const MESSAGES = {
   server: "Something went wrong on the server. Check the env variables are set (see README).",
 };
 
-/** The PIN is checked on the server (/api/unlock, PIN_KEY env var); it's not stored in the app's code. */
+/**
+ * The one PIN screen, shown before anything else (App.jsx). `tool` is set when the link
+ * pointed at a tool, which opens straight after. The PIN is checked on the server
+ * (/api/unlock, PIN_KEY env var); it's not stored in the app's code.
+ */
 export default function PinGate({ tool, onUnlock }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -83,8 +87,8 @@ export default function PinGate({ tool, onUnlock }) {
     >
       <div className="ico">{icons.lock}</div>
       <div>
-        <h1 style={{ fontSize: 18 }}>{tool.name}</h1>
-        <p>Enter your PIN to open your tools.</p>
+        <h1 style={{ fontSize: 18 }}>My Life Tools</h1>
+        <p>Enter your PIN to open everything{tool ? `, starting with ${tool.name}` : ""}.</p>
       </div>
       <label htmlFor="pin" className="pin-label">
         PIN
