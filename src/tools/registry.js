@@ -8,8 +8,8 @@ import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
  * The tool directory. Each entry becomes a tile on the home screen and a
  * route at #/<id>. To add a tool:
  *   1. Create src/tools/<id>/<Component>.jsx (default export).
- *   2. Add an entry below. `locked: true` puts it behind the DoB login,
- *      which is checked on the server (UNLOCK_DOB env var).
+ *   2. Add an entry below. `locked: true` puts it behind the PIN login,
+ *      which is checked on the server (PIN_KEY env var).
  *   3. Optional `badge()` returns { text, tone } to flag something on the tile
  *      (tone: "warn" or "soon"), or null. It runs on the home screen, so keep it light.
  *   4. Optional `featured: true` shows it in its own section above the others, with

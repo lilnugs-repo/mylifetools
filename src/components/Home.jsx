@@ -10,7 +10,7 @@ export default function Home() {
         <h1>Adulting, but make it organised.</h1>
         <p>
           Loans, bills, warranties and that streaming service you forgot you pay for, all in one place. Tap a tile and get
-          sorting. The ones with a padlock want your birthday once per login. No cake involved, sadly.
+          sorting. The ones with a padlock want your secret PIN once per login. (No, it's not 1234. Is it?)
         </p>
       </div>
 

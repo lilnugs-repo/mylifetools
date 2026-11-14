@@ -1,6 +1,6 @@
 # My Life Tools
 
-A lightweight React app (Vite) holding a directory of personal tools, deployed on Vercel. The home screen is a grid of tiles; each tile opens a tool at its own URL (`#/<tool-id>`). Locked tools need a date-of-birth login, checked on the server. Data is saved to a **private Vercel Blob store**, so it syncs across devices.
+A lightweight React app (Vite) holding a directory of personal tools, deployed on Vercel. The home screen is a grid of tiles; each tile opens a tool at its own URL (`#/<tool-id>`). Locked tools need a PIN login, checked on the server. Data is saved to a **private Vercel Blob store**, so it syncs across devices.
 
 **Tools**
 0. **All My Fixed Expenses** (locked, $, shown in its own section at the top of the home screen): one total for everything you pay regularly, shown fortnightly, monthly, quarterly or yearly. Each tool with regular costs (both loans, Household Utilities, My Subscriptions) has a **Send to Fixed Expenses** switch; while it's on, that tool's costs are pulled in automatically and marked as linked. My Home Loan's rupees are converted at an editable rate (default $1 = Nrs. 105). You can also add your own expenses (weekly to yearly). The home tile shows the total.
@@ -15,7 +15,7 @@ A lightweight React app (Vite) holding a directory of personal tools, deployed o
 ```
 Browser (React)                Vercel Functions (/api)            Private Blob store
 ───────────────                ───────────────────────            ──────────────────
-DoB screen ── POST /api/unlock ─▶ checks UNLOCK_DOB,               _system/unlock-attempts.json
+PIN screen ── POST /api/unlock ─▶ checks PIN_KEY,                  _system/unlock-attempts.json
                                   sets signed HttpOnly cookie
 Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ──────▶  tools/car-loan.json
                                                                    tools/home-loan.json
@@ -26,8 +26,8 @@ Each tool ─── GET/PUT /api/state?tool=… ─▶ checks cookie ───�
 localStorage: offline cache only
 ```
 
-- The DoB is only in the `UNLOCK_DOB` env var on the server. It isn't in the browser code.
-- After 5 wrong tries in 15 minutes, logins are paused for 15 minutes.
+- The PIN is only in the `PIN_KEY` env var on the server. It isn't in the browser code.
+- After 5 wrong tries in 15 minutes, logins are paused for 15 minutes, and no more than 15 wrong tries are allowed in 24 hours (a 4-digit PIN has only 10,000 combinations).
 - A login lasts 7 days (`SESSION_DAYS`). **Lock** in the top bar signs out.
 - Every save writes the whole tool file (last write wins). Reads bypass Blob's cache, so you always get the latest save.
 - If the server can't be reached, edits are kept in the browser and uploaded next time the tool opens.
@@ -39,12 +39,12 @@ my-tools/                        # folder and Blob prefix keep the original name
 ├── .env.local                   # your secrets (git-ignored; values left blank)
 ├── .env.example                 # same names, committed as a template
 ├── api/                         # Vercel Functions
-│   ├── unlock.js                # POST: DoB → session cookie (rate-limited)
+│   ├── unlock.js                # POST: PIN → session cookie (rate-limited)
 │   ├── session.js               # GET: am I logged in?
 │   ├── logout.js                # POST: clear cookie
 │   ├── state.js                 # GET/PUT a tool's data
 │   └── _lib/                    # not routes (underscore)
-│       ├── auth.js              # cookie signing, DoB check, attempt limit
+│       ├── auth.js              # cookie signing, PIN check, attempt limits
 │       ├── store.js             # private Blob read/write
 │       └── http.js
 ├── index.html
@@ -63,7 +63,7 @@ my-tools/                        # folder and Blob prefix keep the original name
     │   └── useHashRoute.js      # tiny hash router
     ├── components/
     │   ├── Home.jsx             # tile directory
-    │   ├── DobGate.jsx          # DoB login screen
+    │   ├── PinGate.jsx          # PIN login screen
     │   └── icons.jsx
     └── tools/
         ├── registry.js          # list of tools → tiles + routes
@@ -85,15 +85,15 @@ my-tools/                        # folder and Blob prefix keep the original name
 |---|---|---|
 | `BLOB_READ_WRITE_TOKEN` | Access to the private Blob store | Vercel → Storage → your Blob store. On Vercel it's added automatically when the store is connected; you need it in `.env.local` for local dev |
 | `SESSION_SECRET` | Signs the login cookie. 32+ characters | Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `UNLOCK_DOB` | The DoB that unlocks the tools, `DD/MM/YYYY` | You |
+| `PIN_KEY` | The 4-digit PIN that unlocks the tools | You |
 | `SESSION_DAYS` | Optional. Days a login lasts (default 7) | You |
 
-`.env.local` only feeds local development. **For the live site, add `SESSION_SECRET` and `UNLOCK_DOB` (and `SESSION_DAYS` if used) in Vercel → Project → Settings → Environment Variables**, then redeploy. Changing `SESSION_SECRET` signs everyone out.
+`.env.local` only feeds local development. **For the live site, add `SESSION_SECRET` and `PIN_KEY` (and `SESSION_DAYS` if used) in Vercel → Project → Settings → Environment Variables**, then redeploy. Changing `SESSION_SECRET` signs everyone out.
 
 ## Setup
 
 1. **Blob store:** Vercel → your project → Storage → Create → Blob → set access to **Private** → connect it to the project.
-2. **Env vars:** add `SESSION_SECRET` and `UNLOCK_DOB` in the project settings (above).
+2. **Env vars:** add `SESSION_SECRET` and `PIN_KEY` in the project settings (above).
 3. **Deploy:** push to GitHub and import the repo in Vercel (Vite is detected automatically), or run `vercel --prod`.
 
 ## Run locally
@@ -108,7 +108,7 @@ vercel env pull      # optional: pulls the project's env vars into .env.local
 vercel dev           # app + API at http://localhost:3000
 ```
 
-`npm run dev` starts only the front end (no API), so the DoB screen will say the server isn't running.
+`npm run dev` starts only the front end (no API), so the PIN screen will say the server isn't running.
 
 ## Adding a tool
 

@@ -1,5 +1,5 @@
-// Session cookie auth. The DoB lives only in the UNLOCK_DOB env var on the
-// server, never in the browser bundle. A correct DoB gets a signed, HttpOnly
+// Session cookie auth. The PIN lives only in the PIN_KEY env var on the
+// server, never in the browser bundle. A correct PIN gets a signed, HttpOnly
 // cookie; every data request checks it.
 import crypto from "node:crypto";
 import { readJSON, writeJSON } from "./store.js";
@@ -7,8 +7,11 @@ import { readJSON, writeJSON } from "./store.js";
 const COOKIE = "mt_session";
 const SESSION_DAYS = Number(process.env.SESSION_DAYS) || 7;
 
+// A 4-digit PIN has only 10,000 combinations, so wrong tries are capped twice over:
 export const MAX_FAILS = 5; // wrong tries allowed…
-export const WINDOW_MS = 15 * 60_000; // …within this window before a lockout
+export const WINDOW_MS = 15 * 60_000; // …within 15 minutes, then a pause
+export const DAILY_MAX_FAILS = 15; // and no more than this many…
+export const DAY_MS = 24 * 60 * 60_000; // …in 24 hours (guessing every PIN would take years)
 
 function secret() {
   const s = process.env.SESSION_SECRET;
@@ -43,26 +46,29 @@ export function isAuthed(request) {
   return Number(exp) > Date.now();
 }
 
-/** "03/06/2000", "3-6-2000", "03062000" → "03062000"; null if not a real date. */
-export function normaliseDob(input) {
-  const parts = String(input ?? "").trim().split(/[^0-9]+/).filter(Boolean);
-  let d, m, y;
-  if (parts.length === 3) [d, m, y] = parts;
-  else if (parts.length === 1 && parts[0].length === 8) [d, m, y] = [parts[0].slice(0, 2), parts[0].slice(2, 4), parts[0].slice(4)];
-  else return null;
-  if (y.length !== 4) return null;
-  const dd = Number(d), mm = Number(m), yy = Number(y);
-  const date = new Date(Date.UTC(yy, mm - 1, dd));
-  if (date.getUTCFullYear() !== yy || date.getUTCMonth() !== mm - 1 || date.getUTCDate() !== dd) return null;
-  return String(dd).padStart(2, "0") + String(mm).padStart(2, "0") + y;
+/** The PIN as typed, digits only; null if it isn't 4 digits. */
+export function normalisePin(input) {
+  const pin = String(input ?? "").replace(/\s+/g, "");
+  return /^\d{4}$/.test(pin) ? pin : null;
 }
 
-export function dobMatches(input) {
-  const expected = normaliseDob(process.env.UNLOCK_DOB);
-  if (!expected) throw new Error("UNLOCK_DOB must be set as DD/MM/YYYY");
-  const given = normaliseDob(input) ?? "";
-  const h = (s) => crypto.createHash("sha256").update(s).digest();
+export function pinMatches(input) {
+  const expected = normalisePin(process.env.PIN_KEY);
+  if (!expected) throw new Error("PIN_KEY must be set to a 4-digit code");
+  const given = normalisePin(input) ?? "";
+  const h = (v) => crypto.createHash("sha256").update(v).digest();
   return crypto.timingSafeEqual(h(given), h(expected));
+}
+
+/** Seconds until another try is allowed, given recent failure times; 0 if a try is allowed now. */
+export function lockedFor(fails, now = Date.now()) {
+  const wait = (limit, windowMs) => {
+    const recent = fails.filter((t) => t > now - windowMs).sort((x, y) => x - y);
+    if (recent.length < limit) return 0;
+    // Open again once the oldest of the last `limit` failures leaves the window
+    return Math.max(1, Math.ceil((recent[recent.length - limit] + windowMs - now) / 1000));
+  };
+  return Math.max(wait(MAX_FAILS, WINDOW_MS), wait(DAILY_MAX_FAILS, DAY_MS));
 }
 
 // Failed attempts are kept in the same private Blob store.
@@ -70,7 +76,7 @@ const ATTEMPTS = "_system/unlock-attempts.json";
 
 export async function recentFails() {
   const v = (await readJSON(ATTEMPTS)) || { fails: [] };
-  const cutoff = Date.now() - WINDOW_MS;
+  const cutoff = Date.now() - DAY_MS;
   return v.fails.filter((t) => t > cutoff);
 }
 

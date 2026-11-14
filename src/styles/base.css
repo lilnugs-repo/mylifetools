@@ -91,14 +91,21 @@ a.tool-tile:hover { border-color: var(--accent); transform: translateY(-1px) }
 .tool-tile.soon { border-style: dashed; background: transparent; color: var(--muted) }
 .tool-tile.soon .ico { background: var(--sunk); color: var(--muted) }
 
-/* DoB gate */
+/* PIN gate */
 .gate { max-width: 360px; margin: 32px auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; display: flex; flex-direction: column; gap: 14px }
 .gate .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center }
 .gate .ico svg { width: 20px; height: 20px }
 .gate p { margin: 0; color: var(--muted); font-size: 13px }
-.gate label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted) }
-.gate input { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 18px; letter-spacing: 0.04em; color: var(--fg); font-family: var(--font-num); font-variant-numeric: tabular-nums; min-width: 0 }
-.gate input[aria-invalid="true"] { border-color: var(--warn) }
+.gate .pin-label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted) }
+.pin { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; cursor: text }
+.pin-box { height: 56px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; transition: border-color .15s }
+.pin-box.filled::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--fg) }
+.pin-box.here { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft) }
+.pin input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: 16px; caret-color: transparent }
+.pin.bad .pin-box { border-color: var(--warn) }
+.pin.off .pin-box { opacity: .5 }
+.pin.shake { animation: pin-shake .35s }
+@keyframes pin-shake { 20%, 60% { transform: translateX(-6px) } 40%, 80% { transform: translateX(6px) } }
 .gate .err { color: var(--warn); font-size: 13px; min-height: 1.2em; margin: 0 }
 .gate .btn.primary { justify-content: center; padding: 12px; font-size: 15px }
 .gate .btn.primary[disabled] { opacity: .5; cursor: default }

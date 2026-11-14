@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
 import Home from "./components/Home.jsx";
-import DobGate from "./components/DobGate.jsx";
+import PinGate from "./components/PinGate.jsx";
 import { Logo, icons } from "./components/icons.jsx";
 import { findTool } from "./tools/registry.js";
 import { api } from "./lib/api.js";
@@ -75,7 +75,7 @@ export default function App() {
 
       {!tool && <Home />}
       {needsGate && auth === "checking" && <div className="wrap loading">Checking your session…</div>}
-      {needsGate && auth === "out" && <DobGate tool={tool} onUnlock={() => setAuth("in")} />}
+      {needsGate && auth === "out" && <PinGate tool={tool} onUnlock={() => setAuth("in")} />}
       {tool && !needsGate && (
         <Suspense fallback={<div className="wrap loading">Loading {tool.name}…</div>}>
           <Tool />

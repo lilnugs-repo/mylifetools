@@ -3,7 +3,7 @@
 //   no_api        /api isn't running (plain `npm run dev`; use `vercel dev`)
 //   unauthorised  session missing or expired (also fires the "mt:locked" event)
 //   too_many      unlock rate-limited ({ retryAfter } seconds)
-//   wrong         wrong DoB ({ triesLeft })
+//   wrong         wrong PIN ({ triesLeft })
 //   server        anything else
 
 const TIMEOUT_MS = 15_000;
@@ -39,7 +39,7 @@ async function call(path, opts = {}) {
 
 export const api = {
   session: () => call("/api/session"),
-  unlock: (dob) => call("/api/unlock", { method: "POST", body: JSON.stringify({ dob }) }),
+  unlock: (pin) => call("/api/unlock", { method: "POST", body: JSON.stringify({ pin }) }),
   logout: () => call("/api/logout", { method: "POST" }),
   getState: (tool) => call(`/api/state?tool=${encodeURIComponent(tool)}`),
   putState: (tool, data) => call(`/api/state?tool=${encodeURIComponent(tool)}`, { method: "PUT", body: JSON.stringify({ data }) }),
