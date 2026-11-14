@@ -62,6 +62,16 @@ export default function App() {
           </a>
         )}
         <div className="head-actions">
+          <a
+            className="btn tb-notify"
+            href="#/reminders"
+            aria-current={route === "reminders" ? "page" : undefined}
+            aria-label="Configure notifications"
+            title="Configure email notifications"
+          >
+            {icons.bell}
+            <span className="tb-label">Notifications</span>
+          </a>
           <button
             className="btn icon"
             type="button"

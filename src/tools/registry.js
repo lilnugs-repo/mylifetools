@@ -14,6 +14,7 @@ import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
  *      (tone: "warn" or "soon"), or null. It runs on the home screen, so keep it light.
  *   4. Optional `featured: true` shows it in its own section above the others, with
  *      `headline()` returning { value, per } (e.g. "$4,210.00", "a month") or null.
+ *   5. Optional `hidden: true` keeps it off the home screen (reached some other way).
  * Tools are lazy-loaded, so each one only downloads when it's opened.
  */
 export const tools = [
@@ -76,6 +77,7 @@ export const tools = [
     description: "An email when a repayment, trial or deal is close",
     icon: "bell",
     locked: true,
+    hidden: true, // opened from the Notifications button in the top bar
     component: lazy(() => import("./reminders/Reminders.jsx")),
   },
 ];

@@ -63,6 +63,13 @@ a { color: inherit }
 .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px }
 .btn:hover { border-color: var(--accent) }
 .btn.icon { padding: 6px; width: 32px; height: 32px; justify-content: center }
+.tb-notify { height: 32px }
+.tb-notify svg { width: 16px; height: 16px }
+.tb-notify[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent) }
+@media (max-width: 420px) {
+  .tb-notify { width: 32px; padding: 6px; justify-content: center }
+  .tb-notify .tb-label { display: none }
+}
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface) }
 .danger { color: var(--warn) }
 

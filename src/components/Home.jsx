@@ -8,8 +8,8 @@ export default function Home({ needsPin }) {
   const onOpen = (t) => () => {
     if (t.locked && needsPin) primeKeyboard();
   };
-  const featured = tools.filter((t) => t.featured);
-  const rest = tools.filter((t) => !t.featured);
+  const featured = tools.filter((t) => t.featured && !t.hidden);
+  const rest = tools.filter((t) => !t.featured && !t.hidden);
   return (
     <div className="wrap">
       <div className="home-intro">
