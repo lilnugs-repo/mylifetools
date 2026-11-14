@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import { useCloudState } from "../../lib/useCloudState.js";
-import { DAY_OPTIONS, KINDS, defaultSettings, shapeSettings, whenText } from "./rules.js";
+import { AFTER_OPTIONS, DAY_OPTIONS, KINDS, defaultSettings, shapeSettings, whenText } from "./rules.js";
 import "../_shared/loan/loan-tracker.css"; // header, save status and notes
 import "./reminders.css";
 
@@ -17,12 +17,14 @@ const fmtDate = (isoDate) => {
 const fmtWhen = (isoTime) =>
   new Date(isoTime).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 const cap = (t) => t[0].toUpperCase() + t.slice(1);
+const withCurrent = (opts, v) => (opts.includes(v) ? opts : [...opts, v].sort((a, b) => a - b));
 const TOOL_NAMES = {
   "car-loan": "My Car Loan",
   "home-loan": "My Home Loan",
   subscriptions: "My Subscriptions",
   utilities: "Household Utilities",
   "big-buys": "Big Buys & Warranties",
+  "rent-payday": "Rent & Payday",
 };
 
 export default function Reminders() {
@@ -152,10 +154,15 @@ export default function Reminders() {
                 </span>
               </label>
               <label className="rm-days">
-                <select value={v.days} onChange={(e) => setKind(k, { days: Number(e.target.value) })} disabled={!s.enabled || !v.on} aria-label={`${kind.label}: days before`}>
-                  {(DAY_OPTIONS.includes(v.days) ? DAY_OPTIONS : [...DAY_OPTIONS, v.days].sort((a, b) => a - b)).map((d) => (
+                <select
+                  value={v.days}
+                  onChange={(e) => setKind(k, { days: Number(e.target.value) })}
+                  disabled={!s.enabled || !v.on}
+                  aria-label={`${kind.label}: ${kind.after ? "start" : "days before"}`}
+                >
+                  {withCurrent(kind.after ? AFTER_OPTIONS : DAY_OPTIONS, v.days).map((d) => (
                     <option key={d} value={d}>
-                      {d} day{d > 1 ? "s" : ""} before
+                      {kind.after ? (d === 0 ? "From the due date" : `From ${d} day${d > 1 ? "s" : ""} after`) : `${d} day${d > 1 ? "s" : ""} before`}
                     </option>
                   ))}
                 </select>

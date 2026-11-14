@@ -77,7 +77,7 @@ export const inDays = (n) => (n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n
 
 /** Payments due up to today that aren't ticked off: [{ date, amount }]. */
 export function unpaid(sched, today) {
-  return dates(sched, today, 0)
+  return dates(sched, today, 1) // includes one due today
     .filter((d) => d <= today && !sched.paid?.[toISO(d)])
     .map((d) => ({ date: d, amount: Number(sched.amount) || 0 }));
 }

@@ -8,6 +8,7 @@ import { makeLoanShape } from "../_shared/loan/fixed.js";
 import * as utilities from "../utilities/deals.js";
 import * as subscriptions from "../subscriptions/subs.js";
 import * as bigBuys from "../big-buys/purchases.js";
+import * as rentPayday from "../rent-payday/schedule.js";
 
 const DAY = 864e5;
 const daysUntil = (d, today) => Math.round((d - today) / DAY);
@@ -35,10 +36,30 @@ export const KINDS = {
     daily: true,
     dailyLabel: "Email every day until I mark it cancelled or update it",
   },
+  // Rent & Payday: these start on (or after) the due date, not before it
+  cotenant: {
+    label: "Co-tenant's rent not received",
+    hint: "Their rent day has come and you haven't ticked it off as received",
+    on: true,
+    days: 0,
+    after: true,
+    daily: true,
+    dailyLabel: "Email every day until I tick it off as received",
+  },
+  rent: {
+    label: "Your rent not paid",
+    hint: "Your rent day has come and you haven't ticked it off as paid",
+    on: true,
+    days: 0,
+    after: true,
+    daily: true,
+    dailyLabel: "Email every day until I tick it off as paid",
+  },
   renewals: { label: "Big subscription renewals", hint: "A 3-monthly, 6-monthly or yearly payment is coming up", on: false, days: 7 },
   warranties: { label: "Warranties", hint: "A warranty on something you own is about to end", on: false, days: 30 },
 };
 export const DAY_OPTIONS = [1, 2, 3, 5, 7, 10, 14, 21, 30, 60];
+export const AFTER_OPTIONS = [0, 1, 2, 3, 5, 7]; // for kinds that start on/after the due date
 
 export const defaultSettings = () => ({
   enabled: true,
@@ -55,7 +76,7 @@ export function shapeSettings(v) {
 const LOANS = [carLoan, homeLoan];
 
 /** Where each tool's saved data comes from: the tool ids passed to `load`. */
-export const SOURCE_IDS = ["car-loan", "home-loan", "subscriptions", "utilities", "big-buys"];
+export const SOURCE_IDS = ["car-loan", "home-loan", "subscriptions", "utilities", "big-buys", "rent-payday"];
 
 function makeMoney({ symbol, locale }) {
   const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -281,6 +302,65 @@ export function collect(data, settings, today) {
       date: iso(st.end),
       days,
       daily,
+    });
+  }
+
+  // Rent & Payday: rent days that have passed without a tick (the co-tenant's rent to you, and
+  // your own rent). Starts `days` after the due date. With `daily`, repeats every morning until
+  // ticked; otherwise once for each missed date. Skipped until the tool has been set up.
+  const rp = rentPayday.shapeState(data["rent-payday"]);
+  for (const [kind, part] of [["cotenant", "cotenant"], ["rent", "rent"]]) {
+    const k = s.kinds[kind];
+    if (!rp || !k?.on) continue;
+    const sched = rp[part];
+    const late = rentPayday.unpaid(sched, today).filter((x) => daysUntil(x.date, today) <= -k.days); // newest first
+    if (!late.length) continue;
+    const n = late.length;
+    const oldest = late[n - 1].date;
+    const total = late.reduce((a, x) => a + x.amount, 0);
+    const amount = aud(Number(sched.amount) || 0);
+    const who = rp.cotenant.name || "Your co-tenant";
+    const co = part === "cotenant";
+    const nextDue = rentPayday.next(sched, new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    const tick = co ? "received" : "paid";
+    out.push({
+      // Daily: a new key each morning. Once: a new key only when another date is missed.
+      key: `rent-payday:${part}:late:${k.daily ? iso(today) : iso(late[0].date)}`,
+      kind,
+      tool: "rent-payday",
+      title: co
+        ? n === 1
+          ? `${who}'s rent of ${amount} not received`
+          : `${who}: ${n} rent payments not received`
+        : n === 1
+          ? `Rent of ${amount} not paid`
+          : `${n} rent payments not paid`,
+      detail:
+        `${n === 1 ? "It was" : "The oldest was"} due ${fmtD(oldest)}. Tick ${n === 1 ? "it" : "them"} off in Rent & Payday once ${tick}.` +
+        (k.daily ? ` You'll get this every day until you do.` : ""),
+      date: iso(oldest),
+      days: daysUntil(oldest, today),
+      daily: !!k.daily,
+      facts: [
+        {
+          heading: co ? `Not received from ${who}` : "Not ticked off as paid",
+          rows: [
+            ...late
+              .slice()
+              .reverse()
+              .map((x) => [fmtD(x.date), aud(x.amount)]),
+            [co ? "Total owed to you" : "Total not paid", aud(total)],
+          ],
+        },
+        {
+          heading: co ? `${who}'s rent` : "Your rent",
+          rows: [
+            ["Amount", `${amount} ${(rentPayday.EVERY[sched.every]?.label ?? "").toLowerCase()}`],
+            [co ? "Received so far" : "Paid so far", aud(rentPayday.totalPaid(sched))],
+            ["Next due", `${fmtD(nextDue)} (${amount})`],
+          ],
+        },
+      ],
     });
   }
 
