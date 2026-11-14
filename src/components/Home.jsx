@@ -37,7 +37,6 @@ export default function Home({ needsPin }) {
             ) : (
               <span className="hero-fig hero-go">Open →</span>
             )}
-            {t.locked && <span className="lock" title="Locked">{icons.lock}</span>}
           </a>
         );
       })}
@@ -49,7 +48,6 @@ export default function Home({ needsPin }) {
           return (
             <a key={t.id} className="tool-tile" href={`#/${t.id}`} onClick={onOpen(t)}>
               <span className="ico">{icons[t.icon] ?? icons.plus}</span>
-              {t.locked && <span className="lock" title="Locked">{icons.lock}</span>}
               <span className="name">{t.name}</span>
               <span className="desc">{t.description}</span>
               {badge && <span className={`tile-badge ${badge.tone}`}>{badge.text}</span>}
