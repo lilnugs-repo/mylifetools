@@ -1,5 +1,8 @@
 import { tools } from "../tools/registry.js";
 import { icons } from "./icons.jsx";
+import { inDays } from "../tools/rent-payday/schedule.js";
+
+const fmtDay = (d) => d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
 
 /** Shown once the PIN is in (App.jsx). `syncing`: App is pulling every tool's latest data (see syncAll). */
 export default function Home({ syncing }) {
@@ -28,9 +31,9 @@ export default function Home({ syncing }) {
             >
               <b>{c.text}</b>
               <small className={c.warn ? "cd-warn" : undefined}>
-                {c.warn ??
-                  `${c.paid ? "Due " : ""}${c.date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}`}
+                {c.warn ?? (c.after ? `Next due ${inDays(c.after.days)}` : fmtDay(c.date))}
               </small>
+              {!c.warn && c.after && <small>{fmtDay(c.after.date)}</small>}
             </a>
           ))}
         </nav>

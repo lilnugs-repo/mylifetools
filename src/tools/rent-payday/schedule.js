@@ -109,10 +109,14 @@ export function homeCountdowns() {
   const who = st.cotenant.name || "Co-tenant";
   return countdowns(st, today).map((c) => {
     // Already ticked off for the next date: say so instead of counting down
-    const paid = c.key !== "payday" && !!st[c.key].paid?.[toISO(c.date)];
+    const sched = st[c.key];
+    const paid = c.key !== "payday" && !!sched.paid?.[toISO(c.date)];
+    // …and when the one after it is due
+    const after = paid ? nth(sched.from, sched.every, indexOnOrAfter(sched.from, sched.every, c.date) + 1) : null;
     return {
       ...c,
       paid,
+      after: after && { date: after, days: daysUntil(after, today) },
       text: paid ? (c.key === "rent" ? "Rent paid ✓" : `${who} has paid ✓`) : `${c.short} ${inDays(c.days)}`,
       warn: c.key === "cotenant" && owing > 0 ? `${who} owes ${owing} payment${owing > 1 ? "s" : ""}` : null,
     };
