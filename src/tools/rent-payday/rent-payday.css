@@ -1,0 +1,42 @@
+/* Rent & Payday. Builds on loan-tracker.css (tiles, chips, settings form). */
+.rp-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.rp-card { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c, var(--accent)); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.rp-pay { --c: var(--ok) }
+.rp-rent { --c: var(--interest) }
+.rp-co { --c: var(--accent) }
+.rp-card[data-soon] { background: color-mix(in srgb, var(--c) 8%, var(--surface)) }
+.rp-label { font-size: 12px; font-weight: 700; color: var(--muted) }
+.rp-big { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--fg) }
+.rp-date { font-size: 14px; font-weight: 600 }
+.rp-sub { font-size: 12px; color: var(--muted) }
+.rp-warn { font-size: 12px; font-weight: 700; color: var(--warn) }
+.rp-foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px }
+.rp-foot .chip { margin-top: 0 }
+.rp-gap { margin: -4px 0 0 }
+
+.rp-ledger { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden }
+.rp-ledger li { display: grid; grid-template-columns: 1fr auto minmax(120px, auto); gap: 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 14px }
+.rp-ledger li:first-child { border-top: none }
+.rp-ledger label { display: flex; gap: 10px; align-items: center; cursor: pointer; min-width: 0 }
+.rp-ledger input { width: 18px; height: 18px; accent-color: var(--accent); flex: none }
+.rp-when { display: flex; gap: 6px; align-items: baseline }
+.rp-when small { color: var(--muted); font-size: 12px }
+.rp-amt { text-align: right }
+.rp-state { font-size: 12px; color: var(--muted); text-align: right }
+.rp-ledger li[data-s="paid"] .rp-state { color: var(--ok); font-weight: 700 }
+.rp-ledger li[data-s="late"] .rp-state { color: var(--warn); font-weight: 700 }
+.rp-ledger li[data-s="next"] { background: var(--accent-soft) }
+.rp-ledger li[data-s="next"] .rp-state { color: var(--accent); font-weight: 700 }
+.rp-ledger li[data-s="future"] { color: var(--muted) }
+.rp-more { align-self: flex-start }
+.rp-settings h2 { color: var(--fg) }
+.rp-settings h2:not(:first-child) { margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line) }
+.rp-settings .full-row { grid-column: 1 / -1 }
+.rp-settings .opt { font-weight: 400 }
+
+
+@media (max-width: 600px) {
+  .rp-cards { grid-template-columns: 1fr }
+  .rp-ledger li { grid-template-columns: 1fr auto; }
+  .rp-state { grid-column: 1 / -1; text-align: left; padding-left: 28px; margin-top: -6px }
+}

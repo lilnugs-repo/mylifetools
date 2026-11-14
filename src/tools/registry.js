@@ -3,6 +3,7 @@ import { homeBadge } from "./utilities/deals.js";
 import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
 import { homeBadge as subsBadge } from "./subscriptions/subs.js";
 import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
+import { homeCountdowns as rentCountdowns } from "./rent-payday/schedule.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -15,6 +16,8 @@ import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
  *   4. Optional `featured: true` shows it in its own section above the others, with
  *      `headline()` returning { value, per } (e.g. "$4,210.00", "a month") or null.
  *   5. Optional `hidden: true` keeps it off the home screen (reached some other way).
+ *   6. Optional `countdowns()` returns [{ key, text, warn? }] shown in the strip at the top
+ *      of the home screen (e.g. "Payday in 4 days"). Light, like `badge()`.
  * Tools are lazy-loaded, so each one only downloads when it's opened.
  */
 export const tools = [
@@ -70,6 +73,15 @@ export const tools = [
     locked: true,
     badge: subsBadge,
     component: lazy(() => import("./subscriptions/Subscriptions.jsx")),
+  },
+  {
+    id: "rent-payday",
+    name: "Rent & Payday",
+    description: "Days to payday and rent, and whether your co-tenant has paid",
+    icon: "calendar",
+    locked: true,
+    countdowns: rentCountdowns,
+    component: lazy(() => import("./rent-payday/RentPayday.jsx")),
   },
   {
     id: "reminders",

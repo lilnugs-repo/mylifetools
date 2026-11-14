@@ -10,6 +10,8 @@ export default function Home({ needsPin }) {
   };
   const featured = tools.filter((t) => t.featured && !t.hidden);
   const rest = tools.filter((t) => !t.featured && !t.hidden);
+  const strip = tools.flatMap((t) => (t.countdowns?.() ?? []).map((c) => ({ ...c, tool: t })));
+  const CD_COLOR = { payday: "var(--ok)", rent: "var(--interest)", cotenant: "var(--accent)" };
   return (
     <div className="wrap">
       <div className="home-intro">
@@ -19,6 +21,19 @@ export default function Home({ needsPin }) {
           sorting.
         </p>
       </div>
+
+      {strip.length > 0 && (
+        <nav className="home-countdowns" aria-label="Coming up">
+          {strip.map((c) => (
+            <a key={`${c.tool.id}-${c.key}`} href={`#/${c.tool.id}`} onClick={onOpen(c.tool)} style={{ "--c": CD_COLOR[c.key] }}>
+              <b>{c.text}</b>
+              <small className={c.warn ? "cd-warn" : undefined}>
+                {c.warn ?? c.date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}
+              </small>
+            </a>
+          ))}
+        </nav>
+      )}
 
       {featured.map((t) => {
         const h = t.headline?.();
