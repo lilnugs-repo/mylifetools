@@ -15,7 +15,15 @@ const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0
 
 /** Each kind of reminder, with its default switch and notice period. */
 export const KINDS = {
-  loans: { label: "Loan repayments", hint: "A repayment you haven't ticked off is coming up", on: true, days: 3 },
+  loans: {
+    label: "Loan repayments",
+    hint: "A repayment you haven't ticked off is coming up",
+    on: true,
+    days: 3,
+    // Repeat every morning (also once it's past due) until the repayment is ticked off as paid.
+    daily: true,
+    dailyLabel: "Email every day until I tick it off as paid",
+  },
   trials: { label: "Subscription free trials", hint: "A free trial is about to turn into a paid plan", on: true, days: 3 },
   utilities: {
     label: "Utility intro deals",
@@ -71,22 +79,45 @@ export function collect(data, settings, today) {
     return days >= 0 && days <= k.days ? days : null;
   };
 
-  // Loan repayments not yet ticked off
+  // Loan repayments not yet ticked off. With `daily`, each one repeats every morning until it's
+  // ticked off, and past-due ones keep coming as one "not ticked off" line per loan.
+  const loanDaily = !!s.kinds.loans?.daily;
+  const repeat = loanDaily ? `:${iso(today)}` : "";
+  const keepAt = loanDaily ? " You'll get this every day until you tick it off." : "";
   for (const cfg of LOANS) {
     const st = makeLoanShape(cfg)(data[cfg.id]) ?? { settings: { ...cfg.defaults }, paid: { ...(cfg.defaultPaid || {}) } };
     const money = makeMoney(cfg.currency);
-    for (const r of buildSchedule(st.settings, { onRateChange: cfg.onRateChange, dayCount: cfg.dayCount })) {
-      if (st.paid[r.n]) continue;
+    const unpaid = buildSchedule(st.settings, { onRateChange: cfg.onRateChange, dayCount: cfg.dayCount }).filter((r) => !st.paid[r.n]);
+    const amount = (r) => money(r.payment + (Number(r.fee) || 0));
+
+    const overdue = unpaid.filter((r) => r.due < today);
+    if (loanDaily && s.kinds.loans.on && overdue.length) {
+      const first = overdue[0];
+      const n = overdue.length;
+      out.push({
+        key: `${cfg.id}:overdue${repeat}`,
+        kind: "loans",
+        tool: cfg.id,
+        title: n === 1 ? `${cfg.title} repayment of ${amount(first)} not ticked off` : `${cfg.title}: ${n} repayments not ticked off`,
+        detail: `${n === 1 ? `Repayment ${first.n} was` : `The oldest, repayment ${first.n}, was`} due ${first.due.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}. Tick ${n === 1 ? "it" : "them"} off in ${cfg.title} once paid.${keepAt.replace("it off", n === 1 ? "it off" : "them off")}`,
+        date: iso(first.due),
+        days: daysUntil(first.due, today),
+        daily: true,
+      });
+    }
+
+    for (const r of unpaid) {
       const days = within("loans", r.due);
       if (days == null) continue;
       out.push({
-        key: `${cfg.id}:payment:${r.n}:${iso(r.due)}`,
+        key: `${cfg.id}:payment:${r.n}:${iso(r.due)}${repeat}`,
         kind: "loans",
         tool: cfg.id,
-        title: `${cfg.title} repayment of ${money(r.payment + (Number(r.fee) || 0))} due`,
-        detail: `Repayment ${r.n}: ${money(r.principal)} principal · ${money(r.interest)} interest${r.fee ? ` · ${money(r.fee)} fee` : ""}. Tick it off once paid.`,
+        title: `${cfg.title} repayment of ${amount(r)} due`,
+        detail: `Repayment ${r.n}: ${money(r.principal)} principal · ${money(r.interest)} interest${r.fee ? ` · ${money(r.fee)} fee` : ""}. Tick it off once paid.${keepAt}`,
         date: iso(r.due),
         days,
+        daily: loanDaily,
       });
     }
   }

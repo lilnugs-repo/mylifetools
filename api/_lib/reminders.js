@@ -68,12 +68,12 @@ export function buildEmail(items, appUrl, { test = false } = {}) {
     ? "Test email from My Life Tools"
     : items.length === 1
       ? `${items[0].title} ${whenText(items[0].days)}`
-      : `${items.length} things coming up soon`;
+      : `${items.length} things need your attention`;
   const intro = test
     ? items.length
       ? "Email reminders are working. Here's what's coming up right now:"
       : "Email reminders are working. Nothing is due soon, so this is all for now."
-    : "Heads up, these are coming up soon:";
+    : "Heads up, these need your attention:";
   const link = (i) => (appUrl ? `${appUrl}/#/${i.tool}` : "");
 
   const text = [
