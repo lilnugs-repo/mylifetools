@@ -5,6 +5,7 @@ import homeLoan from "../home-loan/config.js";
 import { loanFixedItems, makeLoanShape } from "../_shared/loan/fixed.js";
 import * as utilities from "../utilities/deals.js";
 import * as subscriptions from "../subscriptions/subs.js";
+import * as rentPayday from "../rent-payday/schedule.js";
 import { readCache } from "../../lib/useCloudState.js";
 
 export const STORAGE_KEY = "tools:fixed-expenses:v1";
@@ -52,6 +53,15 @@ export const SOURCES = [
     shape: subscriptions.shapeState,
     isOn: (st) => !!st.sendToFixed,
     items: subscriptions.fixedItems,
+  },
+  {
+    id: "rent-payday",
+    name: "Rent & Payday",
+    icon: "calendar",
+    keys: [rentPayday.STORAGE_KEY],
+    shape: rentPayday.shapeState,
+    isOn: (st) => !!st.sendToFixed,
+    items: rentPayday.fixedItems,
   },
 ];
 
@@ -162,20 +172,55 @@ export function saveSnapshot(groups) {
  * Monthly total for the home screen tile, from this device's saved copies (no login needed).
  * A tool this device hasn't opened falls back to its total from the last Fixed Expenses visit.
  */
+function homeTotal() {
+  const own = readCache([STORAGE_KEY], shapeState)?.state ?? emptyState;
+  const cached = cachedSourceStates();
+  let snapshot = {};
+  try {
+    snapshot = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || {};
+  } catch {}
+  const groups = buildGroups(own, cached, startOfToday());
+  const monthly = groups.reduce((a, g) => a + (g.linked && !cached[g.id] ? Number(snapshot[g.id]) || 0 : g.monthly), 0);
+  return { own, cached, monthly };
+}
+
 export function homeHeadline() {
   try {
-    const own = readCache([STORAGE_KEY], shapeState)?.state ?? emptyState;
-    const cached = cachedSourceStates();
-    let snapshot = {};
-    try {
-      snapshot = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || {};
-    } catch {}
-    const groups = buildGroups(own, cached, startOfToday());
-    const total = groups.reduce((a, g) => a + (g.linked && !cached[g.id] ? Number(snapshot[g.id]) || 0 : g.monthly), 0);
+    const { own, monthly: total } = homeTotal();
     if (!total) return null;
     const v = VIEWS[own.view] ?? VIEWS.month;
     const nf = new Intl.NumberFormat("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return { value: `$${nf.format(total * v.months)}`, per: v.per };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What's left from each pay after fixed expenses, for the home screen. Pay comes from
+ * Rent & Payday (its amount and how often it lands); fixed expenses are the same total as
+ * the Fixed Expenses tile, spread over the same period. From this device's saved copies.
+ *   { hasPay, every, per, pay, fixed, left, leftMonthly, rentCounted }
+ */
+export function leftAfterFixed() {
+  try {
+    const { cached, monthly } = homeTotal();
+    const rp = cached["rent-payday"] ?? readCache([rentPayday.STORAGE_KEY], rentPayday.shapeState)?.state ?? null;
+    const payday = rp?.payday;
+    const pay = Number(payday?.amount) || 0;
+    const every = rentPayday.EVERY[payday?.every] ? payday.every : "fortnight";
+    const cycle = rentPayday.EVERY[every];
+    const fixed = monthly / cycle.perMonth; // fixed expenses for one pay period
+    return {
+      hasPay: pay > 0,
+      every,
+      per: cycle.per,
+      pay,
+      fixed,
+      left: pay - fixed,
+      leftMonthly: pay * cycle.perMonth - monthly,
+      rentCounted: !!rp?.sendToFixed,
+    };
   } catch {
     return null;
   }

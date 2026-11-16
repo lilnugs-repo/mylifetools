@@ -160,3 +160,16 @@ a.tool-tile:hover { border-color: var(--accent); transform: translateY(-1px) }
 .home-countdowns b { font-size: 15px }
 .home-countdowns small { font-size: 12px; color: var(--muted) }
 .home-countdowns .cd-warn { color: var(--warn); font-weight: 700 }
+
+/* "Left for spending" on the home screen (src/components/Home.jsx) */
+.home-left { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: var(--r); padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start }
+.home-left[data-short] { border-left-color: var(--warn) }
+.home-left[data-empty] { border-style: dashed; border-left-style: solid; border-left-color: var(--line); gap: 8px }
+.home-left .k { font-size: 13px; font-weight: 700; color: var(--muted) }
+.home-left[data-short] .k, .home-left[data-short] .v { color: var(--warn) }
+.home-left .v { font-family: var(--font-display); font-size: 32px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15 }
+.home-left .v small { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0 }
+.home-left .sum { font-size: 13px; color: var(--muted) }
+.home-left p { margin: 0; font-size: 14px; color: var(--muted) }
+.home-left .note { font-size: 12px; color: var(--muted); margin-top: 4px }
+.home-left .note a { color: var(--accent); font-weight: 700 }

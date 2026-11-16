@@ -15,8 +15,10 @@ import {
   toISO,
   totalPaid,
   unpaid,
+  fixedItems,
 } from "./schedule.js";
 import "../_shared/loan/loan-tracker.css"; // header, tiles, chips, settings form
+import FixedToggle from "../../components/FixedToggle.jsx";
 import "./rent-payday.css";
 
 /**
@@ -76,6 +78,15 @@ export default function RentPayday() {
           </button>
         </div>
       </header>
+
+      <FixedToggle
+        on={state.sendToFixed}
+        onChange={(v) => setState((st) => ({ ...st, sendToFixed: v }))}
+        summary={(() => {
+          const net = fixedItems({ ...state, sendToFixed: true }).reduce((a, i) => a + i.monthly, 0);
+          return net ? `${money(net)} a month (rent less ${who}'s share)` : "";
+        })()}
+      />
 
       {editing && <Settings state={state} set={set} />}
 

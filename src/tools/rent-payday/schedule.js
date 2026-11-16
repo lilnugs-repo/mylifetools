@@ -11,15 +11,22 @@ export const STORAGE_KEY = "tools:rent-payday:v1";
 const DAY = 864e5;
 
 export const EVERY = {
-  week: { label: "Every week", days: 7 },
-  fortnight: { label: "Every 2 weeks", days: 14 },
-  month: { label: "Every month", months: 1 },
+  week: { label: "Every week", days: 7, per: "a week", perMonth: 52 / 12 },
+  fortnight: { label: "Every 2 weeks", days: 14, per: "a fortnight", perMonth: 26 / 12 },
+  month: { label: "Every month", months: 1, per: "a month", perMonth: 1 },
 };
+
+const audFmt = new Intl.NumberFormat("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const aud = (n) => "$" + audFmt.format(Number(n) || 0);
+
+/** A repeating amount as a monthly figure. */
+export const monthlyOf = (sched) => (Number(sched.amount) || 0) * (EVERY[sched.every] ?? EVERY.week).perMonth;
 
 export const defaults = () => ({
   payday: { label: "Sonder", from: "2026-11-04", every: "fortnight", amount: "" },
   rent: { from: "2026-11-02", every: "fortnight", amount: 1160, paid: {} },
   cotenant: { name: "JD", from: "2026-11-01", every: "week", amount: 300, paid: {} },
+  sendToFixed: false,
 });
 
 export const emptyState = defaults();
@@ -32,7 +39,30 @@ export function shapeState(v) {
     payday: { ...d.payday, ...v.payday },
     rent: { ...d.rent, ...v.rent, paid: v.rent.paid || {} },
     cotenant: { ...d.cotenant, ...v.cotenant, paid: v.cotenant.paid || {} },
+    sendToFixed: !!v.sendToFixed,
   };
+}
+
+/**
+ * What this tool sends to All My Fixed Expenses: the rent, less what the co-tenant
+ * pays you towards it, so the total is your own share.
+ */
+export function fixedItems(state) {
+  if (!state.sendToFixed) return [];
+  const { rent, cotenant } = state;
+  const who = cotenant.name || "Co-tenant";
+  const items = [];
+  if (Number(rent.amount) > 0)
+    items.push({ key: "rent", name: "Rent", detail: `${aud(rent.amount)} ${EVERY[rent.every]?.label.toLowerCase()}`, monthly: monthlyOf(rent), currency: "AUD" });
+  if (Number(cotenant.amount) > 0)
+    items.push({
+      key: "cotenant",
+      name: `${who}'s share of rent`,
+      detail: `Paid to you: ${aud(cotenant.amount)} ${EVERY[cotenant.every]?.label.toLowerCase()}`,
+      monthly: -monthlyOf(cotenant),
+      currency: "AUD",
+    });
+  return items;
 }
 
 export const startOfToday = () => {
