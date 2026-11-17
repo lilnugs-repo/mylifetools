@@ -1,0 +1,39 @@
+/* Money Owed to Me. Builds on loan-tracker.css (tiles, forms, chips, bars),
+   utilities.css (card header, form rows) and big-buys.css (facts, inline forms, guide). */
+
+.mo-empty { align-items: flex-start }
+
+/* Message after emailing someone */
+.mo-flash { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; border-radius: var(--r); padding: 10px 14px; font-size: 14px; background: var(--sunk) }
+.mo-flash-ok { background: var(--accent-soft); color: var(--accent); font-weight: 600 }
+.mo-flash-err { background: var(--warn-soft); color: var(--warn); font-weight: 600 }
+
+/* Loan card */
+.mo-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 10px }
+.mo-card[data-state="soon"] { border-left-color: var(--soon) }
+.mo-card[data-state="overdue"] { border-left-color: var(--warn) }
+.mo-card[data-state="settled"] { background: transparent; border-style: dashed; border-left-style: solid; border-left-color: var(--line) }
+.mo-initial { font-family: var(--font-display); font-size: 18px; font-weight: 600 }
+.mo-chip-soon { background: var(--soon-soft); color: var(--soon) }
+.mo-chip-late { background: var(--warn-soft); color: var(--warn) }
+.mo-chip-done { background: var(--sunk); color: var(--muted) }
+
+.mo-money { display: flex; flex-direction: column; gap: 6px }
+.mo-left { font-size: 22px; font-weight: 700 }
+.mo-left small { font-size: 13px; font-weight: 600; color: var(--muted) }
+.mo-card[data-state="overdue"] .mo-left { color: var(--warn) }
+
+.mo-remind { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; background: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--muted) }
+.mo-remind > span { flex: 1 1 220px; display: inline }
+.mo-remind svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 2px }
+.mo-remind b { color: var(--fg) }
+.mo-switch { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--fg); cursor: pointer }
+.mo-switch input { accent-color: var(--accent); width: 16px; height: 16px }
+.mo-why { color: var(--soon) }
+
+.mo-settled { display: flex; flex-direction: column; gap: 10px; align-items: flex-start }
+.mo-settled .stack { align-self: stretch }
+
+/* Checkbox rows in the form */
+.su-inline { flex-direction: row !important; align-items: center; gap: 8px !important; font-weight: 600 }
+.su-inline input { accent-color: var(--accent); width: 16px; height: 16px }

@@ -9,6 +9,7 @@ import * as utilities from "../utilities/deals.js";
 import * as subscriptions from "../subscriptions/subs.js";
 import * as bigBuys from "../big-buys/purchases.js";
 import * as rentPayday from "../rent-payday/schedule.js";
+import * as moneyOwed from "../money-owed/owed.js";
 
 const DAY = 864e5;
 const daysUntil = (d, today) => Math.round((d - today) / DAY);
@@ -55,6 +56,13 @@ export const KINDS = {
     daily: true,
     dailyLabel: "Email every day until I tick it off as paid",
   },
+  owed: {
+    label: "Money owed to you is overdue",
+    hint: "Someone's return date has passed and it isn't marked repaid",
+    on: true,
+    days: 0,
+    after: true,
+  },
   renewals: { label: "Big subscription renewals", hint: "A 3-monthly, 6-monthly or yearly payment is coming up", on: false, days: 7 },
   warranties: { label: "Warranties", hint: "A warranty on something you own is about to end", on: false, days: 30 },
 };
@@ -76,7 +84,7 @@ export function shapeSettings(v) {
 const LOANS = [carLoan, homeLoan];
 
 /** Where each tool's saved data comes from: the tool ids passed to `load`. */
-export const SOURCE_IDS = ["car-loan", "home-loan", "subscriptions", "utilities", "big-buys", "rent-payday"];
+export const SOURCE_IDS = ["car-loan", "home-loan", "subscriptions", "utilities", "big-buys", "rent-payday", "money-owed"];
 
 function makeMoney({ symbol, locale }) {
   const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -362,6 +370,38 @@ export function collect(data, settings, today) {
         },
       ],
     });
+  }
+
+  // Money Owed to Me: return dates that have passed (once per entry and return date)
+  const mo = moneyOwed.shapeState(data["money-owed"]);
+  if (mo && s.kinds.owed?.on) {
+    for (const e of mo.entries) {
+      const st = moneyOwed.status(e, today);
+      if (st.state !== "overdue" || -st.days < (s.kinds.owed.days || 0)) continue;
+      const left = moneyOwed.outstandingOf(e);
+      const who = e.name || "Someone";
+      out.push({
+        key: `money-owed:${e.id}:overdue:${e.due}`,
+        kind: "owed",
+        tool: "money-owed",
+        title: `${who} owes you ${aud(left)}`,
+        detail:
+          `It was due back ${fmtD(st.due)}${e.what ? ` (${e.what})` : ""}. ` +
+          (e.remind && moneyOwed.canEmail(e) ? `They'll get reminder emails until you mark it repaid.` : `They're not getting reminder emails.`),
+        date: e.due,
+        days: st.days,
+        facts: [
+          {
+            heading: "Loan",
+            rows: [
+              ["Lent", `${aud(moneyOwed.amountOf(e))} on ${fmtD(moneyOwed.parseISO(e.lent))}`],
+              ...(moneyOwed.repaidOf(e) ? [["Paid back so far", aud(moneyOwed.repaidOf(e))]] : []),
+              ["Still owed", aud(left)],
+            ],
+          },
+        ],
+      });
+    }
   }
 
   // Warranties ending

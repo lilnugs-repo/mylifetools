@@ -9,6 +9,7 @@ import { STORAGE_KEY as SUBSCRIPTIONS } from "../tools/subscriptions/subs.js";
 import { STORAGE_KEY as BIG_BUYS } from "../tools/big-buys/purchases.js";
 import { STORAGE_KEY as RENT_PAYDAY } from "../tools/rent-payday/schedule.js";
 import { STORAGE_KEY as FIXED } from "../tools/fixed-expenses/fixed.js";
+import { STORAGE_KEY as MONEY_OWED } from "../tools/money-owed/owed.js";
 
 // Tool id (its file on the server) → its copy in this browser (same keys useCloudState uses)
 const TOOLS = [
@@ -20,6 +21,7 @@ const TOOLS = [
   ["rent-payday", RENT_PAYDAY],
   ["fixed-expenses", FIXED],
   ["reminders", "tools:reminders:v1"],
+  ["money-owed", MONEY_OWED],
 ];
 
 function readLocal(key) {

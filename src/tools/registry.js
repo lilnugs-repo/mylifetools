@@ -4,6 +4,7 @@ import { homeBadge as bigBuysBadge } from "./big-buys/purchases.js";
 import { homeBadge as subsBadge } from "./subscriptions/subs.js";
 import { homeHeadline as fixedHeadline } from "./fixed-expenses/fixed.js";
 import { homeCountdowns as rentCountdowns } from "./rent-payday/schedule.js";
+import { homeBadge as owedBadge } from "./money-owed/owed.js";
 
 /**
  * The tool directory. Each entry becomes a tile on the home screen and a
@@ -82,6 +83,15 @@ export const tools = [
     locked: true,
     countdowns: rentCountdowns,
     component: lazy(() => import("./rent-payday/RentPayday.jsx")),
+  },
+  {
+    id: "money-owed",
+    name: "Money Owed to Me",
+    description: "Who you've lent money to, when it's due back, and friendly reminders",
+    icon: "handCoins",
+    locked: true,
+    badge: owedBadge,
+    component: lazy(() => import("./money-owed/MoneyOwed.jsx")),
   },
   {
     id: "reminders",

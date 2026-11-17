@@ -2,6 +2,7 @@ import { tools } from "../tools/registry.js";
 import { icons } from "./icons.jsx";
 import { inDays } from "../tools/rent-payday/schedule.js";
 import { leftAfterFixed } from "../tools/fixed-expenses/fixed.js";
+import { useFxRate } from "../lib/fx.js";
 
 const nf = new Intl.NumberFormat("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (n) => (n < 0 ? "−" : "") + "$" + nf.format(Math.abs(n));
@@ -23,6 +24,8 @@ export default function Home({ syncing }) {
           sorting.
         </p>
       </div>
+
+      <FxPin />
 
       {strip.length > 0 && (
         <nav className="home-countdowns" aria-label="Coming up">
@@ -121,5 +124,34 @@ function LeftToSpend({ l, syncing }) {
         </span>
       )}
     </section>
+  );
+}
+
+/** Pinned AUD → NPR rate (latest from /api/fx; the last one seen if it can't be reached). */
+function FxPin() {
+  const fx = useFxRate();
+  const rateFmt = new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const when = (iso) => {
+    const d = new Date(iso);
+    return Number.isNaN(+d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  };
+  return (
+    <div className="fx-pin" role="status" aria-label="Exchange rate">
+      <span className="fx-flag" aria-hidden="true">
+        AUD → NPR
+      </span>
+      {fx ? (
+        <>
+          <b className="num">
+            $1 = Nrs. {rateFmt.format(fx.rate)}
+          </b>
+          <small>
+            {fx.stale ? "Last seen" : "Updated"} {when(fx.updated)}
+          </small>
+        </>
+      ) : (
+        <small>Getting today's rate…</small>
+      )}
+    </div>
   );
 }

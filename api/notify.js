@@ -9,6 +9,7 @@ import { isAuthed } from "./_lib/auth.js";
 import { readJSON, writeJSON } from "./_lib/store.js";
 import { SENT, loadAll, missingConfig, runReminders, sendWithResend, todayIn } from "./_lib/reminders.js";
 import { collect } from "../src/tools/reminders/rules.js";
+import { friendEmailProblem, runOwed, sendToBorrower } from "./_lib/owed.js";
 
 const appUrl = (request) => process.env.APP_URL || new URL(request.url).origin;
 
@@ -25,8 +26,19 @@ export async function GET(request) {
     if (!fromCron(request)) return json(401, { error: "unauthorised" });
     const missing = missingConfig();
     if (missing.length) return json(500, { error: "not_configured", missing });
-    const r = await runReminders({ readJSON, writeJSON, sendEmail: sendWithResend, today: todayIn(), appUrl: appUrl(request) });
-    return json(200, { sent: r.sent, due: r.items.length, skipped: r.skipped });
+    const today = todayIn();
+    const r = await runReminders({ readJSON, writeJSON, sendEmail: sendWithResend, today, appUrl: appUrl(request) });
+    // Money Owed to Me: reminders to borrowers past their return date (needs a verified sending domain)
+    let owed = { sent: 0, failed: 0, skipped: friendEmailProblem() };
+    if (!owed.skipped) {
+      try {
+        owed = await runOwed({ readJSON, writeJSON, send: sendToBorrower, today });
+      } catch (e) {
+        console.error("money-owed run failed", e);
+        owed = { error: e.message };
+      }
+    }
+    return json(200, { sent: r.sent, due: r.items.length, skipped: r.skipped, owed });
   } catch (e) {
     console.error(e);
     return json(e.status || 500, { error: "server_error", detail: e.message });

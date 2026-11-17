@@ -25,6 +25,7 @@ const TOOL_NAMES = {
   utilities: "Household Utilities",
   "big-buys": "Big Buys & Warranties",
   "rent-payday": "Rent & Payday",
+  "money-owed": "Money Owed to Me",
 };
 
 export default function Reminders() {

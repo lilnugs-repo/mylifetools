@@ -217,6 +217,19 @@ export const icons = {
       <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
     </svg>
   ),
+  mail: (
+    <svg {...base}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
+  ),
+  handCoins: (
+    <svg {...base}>
+      <circle cx="16" cy="6.5" r="3.5" />
+      <path d="M2 15h3l3.5-1.5c1-.4 2-.2 2.8.4L13 15h3a1.5 1.5 0 0 1 0 3h-4" />
+      <path d="M5 21l3.5-1.5H15l5.5-4.5a1.6 1.6 0 0 0-2.2-2.3L15 15" />
+    </svg>
+  ),
   calendar: (
     <svg {...base}>
       <rect x="3" y="5" width="18" height="16" rx="2" />

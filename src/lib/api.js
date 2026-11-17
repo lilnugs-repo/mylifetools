@@ -44,4 +44,6 @@ export const api = {
   getState: (tool) => call(`/api/state?tool=${encodeURIComponent(tool)}`),
   putState: (tool, data) => call(`/api/state?tool=${encodeURIComponent(tool)}`, { method: "PUT", body: JSON.stringify({ data }) }),
   notify: (action) => call("/api/notify", { method: "POST", body: JSON.stringify({ action }) }),
+  fx: () => call("/api/fx"),
+  owed: (body) => call("/api/owed", { method: "POST", body: JSON.stringify(body) }),
 };

@@ -173,3 +173,8 @@ a.tool-tile:hover { border-color: var(--accent); transform: translateY(-1px) }
 .home-left p { margin: 0; font-size: 14px; color: var(--muted) }
 .home-left .note { font-size: 12px; color: var(--muted); margin-top: 4px }
 .home-left .note a { color: var(--accent); font-weight: 700 }
+
+/* Pinned exchange rate on the home screen */
+.fx-pin { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 6px 14px; font-size: 14px }
+.fx-pin .fx-flag { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--accent); background: var(--accent-soft); border-radius: 99px; padding: 1px 8px; align-self: center }
+.fx-pin small { font-size: 12px; color: var(--muted) }
