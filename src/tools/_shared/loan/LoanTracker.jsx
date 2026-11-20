@@ -112,6 +112,8 @@ export default function LoanTracker({ config }) {
         </div>
       </header>
 
+      <CostBar principal={s.principal} interest={totals.interestTotal} fees={s.fee * count} months={count} money={money} />
+
       {showSettings && (
         <Settings
           settings={s}
@@ -212,6 +214,63 @@ function startOfToday() {
 }
 
 /* ---------- sections ---------- */
+
+/**
+ * What the whole loan costs, split into principal, interest and fees: one segmented bar
+ * (widths proportional, share printed inside when it fits) with a key giving each amount.
+ * Colours are validated for colour-blind separation in light and dark (see loan-tracker.css).
+ */
+function CostBar({ principal, interest, fees, months, money }) {
+  const parts = [
+    { key: "principal", label: "Principal", hint: "the amount borrowed", value: principal },
+    { key: "interest", label: "Interest", hint: "the lender's charge for the loan", value: interest },
+    { key: "fees", label: "Fees", hint: "account fees", value: fees },
+  ].filter((p) => p.value > 0.005);
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  if (!total) return null;
+  const pct = (v) => (v / total) * 100;
+  const share = (v) => {
+    const p = pct(v);
+    return p < 1 ? "<1%" : `${Math.round(p)}%`;
+  };
+  const summary = parts.map((p) => `${p.label} ${money(p.value)} (${share(p.value)})`).join(", ");
+
+  return (
+    <section className="cost" aria-label="What the loan costs">
+      <div className="cost-head">
+        <span className="k">What you'll pay over {fmtYears(months)}</span>
+        <span className="cost-total num">{money(total)}</span>
+      </div>
+      <div className="cost-bar" role="img" aria-label={`Total ${money(total)}: ${summary}`}>
+        {parts.map((p) => (
+          <span
+            key={p.key}
+            className="cost-seg"
+            data-k={p.key}
+            style={{ flexGrow: p.value }}
+            title={`${p.label}: ${money(p.value)} (${share(p.value)})`}
+          >
+            {/* the share fits inside blocks of roughly 12% and up; smaller ones rely on the key */}
+            {pct(p.value) >= 12 && <span className="cost-in num">{share(p.value)}</span>}
+          </span>
+        ))}
+      </div>
+      <ul className="cost-key">
+        {parts.map((p) => (
+          <li key={p.key}>
+            <span className="cost-sw" data-k={p.key} aria-hidden="true" />
+            <span className="cost-name">
+              {p.label}
+              <small>{p.hint}</small>
+            </span>
+            <b className="num">{money(p.value)}</b>
+            <span className="cost-pct num">{share(p.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function NowCard({ s, count, variableRate, next, overdue, today, money, fmtDate, onPay }) {
   if (!next) {
