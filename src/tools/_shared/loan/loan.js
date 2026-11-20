@@ -214,3 +214,39 @@ export function rateToClear(s, opts, bal, after, pmt, n, maxRate) {
   }
   return Math.floor(lo * 100) / 100;
 }
+
+/* ---------- Paying out early ---------- */
+
+/**
+ * What paying the loan out on `date` saves compared with running it to the end:
+ * the interest and fees on every repayment still to come, less what paying out costs
+ * (early termination fee, admin fee, break cost). Assumes repayments up to `date` are
+ * made on time, like projectToDate.
+ */
+export function payoutSavings(s, rows, date, rules) {
+  const p = projectToDate(s, rows, date, rules);
+  const interestAll = rows.reduce((a, r) => a + r.interest, 0);
+  const feesAll = rows.reduce((a, r) => a + r.fee, 0);
+  const interestAvoided = Math.max(0, interestAll - p.interestPaid);
+  const feesAvoided = Math.max(0, feesAll - p.feesPaid);
+  const costs = p.payout.etf + p.payout.admin + p.payout.breakCost;
+  return { ...p, interestAvoided, feesAvoided, costs, net: interestAvoided + feesAvoided - costs };
+}
+
+/**
+ * Across the repayment dates from `from` onwards (paying out right after that repayment):
+ * the one that saves the most, and the last one that still saves anything.
+ * { best: { date, n, net }, last: { date, n, net } } or null if no date saves anything.
+ */
+export function bestPayout(s, rows, rules, from) {
+  let best = null, last = null;
+  for (const r of rows.slice(0, -1)) {
+    if (from && r.due < from) continue;
+    const { net } = payoutSavings(s, rows, r.due, rules);
+    if (net <= 0.005) continue;
+    const at = { date: r.due, n: r.n, net };
+    if (!best || net > best.net + 0.005) best = at;
+    last = at;
+  }
+  return best && { best, last };
+}

@@ -129,3 +129,12 @@ tr.paid td.int { color: var(--muted) }
 .cost-name small { font-size: 12px; color: var(--muted) }
 .cost-pct { width: 44px; text-align: right; color: var(--muted); font-size: 13px }
 @media (forced-colors: active) { .cost-seg, .cost-sw { forced-color-adjust: none } }
+
+/* Check a date: what paying out then saves */
+.save-out { background: var(--accent-soft); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px }
+.save-out[data-neg] { background: var(--warn-soft) }
+.save-net { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; font-weight: 700; font-size: 15px; color: var(--accent) }
+.save-out[data-neg] .save-net { color: var(--warn) }
+.save-best { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-size: 13px; border: 1px dashed var(--accent); border-radius: 10px; padding: 10px 12px }
+.save-best span { flex: 1 1 240px }
+.save-out .line span:last-child { white-space: nowrap }

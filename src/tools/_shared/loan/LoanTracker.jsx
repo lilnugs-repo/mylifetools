@@ -13,7 +13,9 @@ function portalHref(v) {
 }
 import {
   addMonths,
+  bestPayout,
   buildSchedule,
+  payoutSavings,
   fullMonthsBetween,
   paymentToClear,
   rateChanges,
@@ -179,7 +181,7 @@ export default function LoanTracker({ config }) {
           onGoal={(v) => updateSetting("goal", v)}
         />
       ) : (
-        <DateCheck s={s} rows={rows} rules={rules} money={money} fmtDate={fmtDate} storageKey={storageKey} />
+        <DateCheck s={s} rows={rows} rules={rules} money={money} fmtDate={fmtDate} storageKey={storageKey} today={today} />
       )}
 
       <section className="stack">
@@ -548,7 +550,7 @@ function GoalPlanner({ s, rows, current, keepPayment, opts, money, fmtDate, onGo
 }
 
 /** "Check a date": repayment due and payout figure on any chosen date. */
-function DateCheck({ s, rows, rules, money, fmtDate, storageKey }) {
+function DateCheck({ s, rows, rules, money, fmtDate, storageKey, today }) {
   const dateKey = `${storageKey}:check-date`;
   const [iso, setIso] = useState(() => {
     try {
@@ -564,7 +566,9 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey }) {
   const date = iso ? parseISO(iso) : null;
   const start = parseISO(s.start);
   const valid = date && !Number.isNaN(date.getTime());
-  const p = valid && date >= start ? projectToDate(s, rows, date, rules) : null;
+  const p = valid && date >= start ? payoutSavings(s, rows, date, rules) : null;
+  // Best repayment date to pay out on, from today (or the start, before the loan begins)
+  const best = useMemo(() => bestPayout(s, rows, rules, today > start ? today : start), [s, rows, rules, today, start]);
 
   const quick = [12, 24, 36].filter((m) => m < rows.length);
 
@@ -617,7 +621,67 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey }) {
             <span className="payout-total num">{money(p.payout.total)}</span>
           </div>
           <div className="lines num">{payoutLines(p.payout, s, rules, money)}</div>
-          <p className="note">Assumes every repayment due up to this date is paid on time at the scheduled amount.</p>
+
+          {p.payout.balance > 0.005 && (
+            <div className="save-out" data-neg={p.net < 0 ? "1" : undefined}>
+              <span className="k-strong">Paying it out then, instead of running the full term</span>
+              <div className="lines num">
+                <div className="line">
+                  <span>Interest you'd avoid</span>
+                  <span>{money(p.interestAvoided)}</span>
+                </div>
+                <div className="line">
+                  <span>Account fees you'd avoid ({rows.length - p.paidCount} × {money(s.fee)})</span>
+                  <span>{money(p.feesAvoided)}</span>
+                </div>
+                <div className="line">
+                  <span>Less: early payout costs (termination, admin{rules.breakCost ? ", break cost" : ""})</span>
+                  <span>−{money(p.costs)}</span>
+                </div>
+                <div className="line save-net">
+                  <span>{p.net >= 0 ? "You'd save" : "You'd lose"}</span>
+                  <span>{money(Math.abs(p.net))}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {best && (
+            <div className="save-best">
+              <span>
+                <b>Best time to pay out:</b> right after payment {best.best.n} on {fmtDate(best.best.date)}, saving {money(best.best.net)}.
+                {best.last.n !== best.best.n && (
+                  <>
+                    {" "}
+                    The sooner the better: it still saves money up to payment {best.last.n} on {fmtDate(best.last.date)} ({money(best.last.net)}),
+                    after which the payout costs outweigh the interest and fees left.
+                  </>
+                )}
+              </span>
+              <span className="head-actions">
+                {toISO(best.best.date) !== iso && (
+                  <button className="btn small" type="button" onClick={() => setIso(toISO(best.best.date))}>
+                    Check best date
+                  </button>
+                )}
+                {best.last.n !== best.best.n && toISO(best.last.date) !== iso && (
+                  <button className="btn small" type="button" onClick={() => setIso(toISO(best.last.date))}>
+                    Check last worthwhile date
+                  </button>
+                )}
+              </span>
+            </div>
+          )}
+          {!best && (
+            <div className="save-best">
+              <span>From here on, paying out early would cost more in fees than it saves in interest.</span>
+            </div>
+          )}
+
+          <p className="note">
+            Assumes every repayment due up to this date is paid on time at the scheduled amount. Paying out between repayments
+            also adds a few days' interest since the last one.
+          </p>
         </>
       )}
     </section>
