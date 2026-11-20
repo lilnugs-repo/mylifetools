@@ -562,6 +562,19 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey, today }) {
   useEffect(() => {
     try { localStorage.setItem(dateKey, iso); } catch {}
   }, [iso, dateKey]);
+  const openKey = `${storageKey}:check-open`;
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(openKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = (e) => {
+    const v = e.currentTarget.open;
+    setOpen(v);
+    try { localStorage.setItem(openKey, v ? "1" : "0"); } catch {}
+  };
 
   const date = iso ? parseISO(iso) : null;
   const start = parseISO(s.start);
@@ -573,9 +586,25 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey, today }) {
   const quick = [12, 24, 36].filter((m) => m < rows.length);
 
   return (
-    <section className="check" aria-label="Check a date">
-      <div className="payout-head">
+    <details className="check check-fold" open={open} onToggle={toggle}>
+      <summary>
         <h2>Check a date</h2>
+        {/* While closed: the date being checked and what paying out then would save */}
+        {!open && p && (
+          <span className="fold-peek num">
+            {fmtDate(date)}
+            {p.payout.balance > 0.005 && (
+              <b className={p.net >= 0 ? "good" : "bad"}>
+                {" "}
+                · {p.net >= 0 ? "save" : "lose"} {money(Math.abs(p.net))}
+              </b>
+            )}
+          </span>
+        )}
+      </summary>
+      <div className="check-body">
+      <div className="payout-head">
+        <span className="k-strong">Payout figures for any date, and what paying out then would save</span>
         <div className="check-controls">
           {quick.map((m) => (
             <button key={m} type="button" className="btn small" onClick={() => setIso(toISO(addMonths(start, m)))}>
@@ -684,7 +713,8 @@ function DateCheck({ s, rows, rules, money, fmtDate, storageKey, today }) {
           </p>
         </>
       )}
-    </section>
+      </div>
+    </details>
   );
 }
 

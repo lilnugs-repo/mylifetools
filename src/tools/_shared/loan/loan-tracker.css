@@ -138,3 +138,15 @@ tr.paid td.int { color: var(--muted) }
 .save-best { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; font-size: 13px; border: 1px dashed var(--accent); border-radius: 10px; padding: 10px 12px }
 .save-best span { flex: 1 1 240px }
 .save-out .line span:last-child { white-space: nowrap }
+
+/* Check a date, folded away until opened */
+.check-fold > summary { list-style: none; display: flex; align-items: center; gap: 10px; cursor: pointer; margin: -16px; padding: 16px; flex-wrap: wrap }
+.check-fold > summary::-webkit-details-marker { display: none }
+.check-fold > summary::before { content: "›"; display: inline-block; transition: transform .2s; color: var(--muted); font-weight: 700; font-size: 18px; line-height: 1 }
+.check-fold[open] > summary::before { transform: rotate(90deg) }
+.check-fold > summary h2 { flex: 1 }
+.fold-peek { font-size: 13px; color: var(--muted) }
+.fold-peek .good { color: var(--accent) }
+.fold-peek .bad { color: var(--warn) }
+.check-fold { display: block }
+.check-body { display: flex; flex-direction: column; gap: 12px; margin-top: 16px }
