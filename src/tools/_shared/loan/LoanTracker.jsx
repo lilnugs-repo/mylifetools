@@ -1,4 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { hostOf, safeUrl } from "../../../lib/files.js";
+
+/** A web address worth linking to: http(s), no spaces, and a real-looking domain. Null otherwise. */
+function portalHref(v) {
+  const t = (v || "").trim();
+  const url = !/\s/.test(t) && safeUrl(t);
+  try {
+    return url && /\.[a-z]{2,}$/i.test(new URL(url).hostname) ? url : null;
+  } catch {
+    return null;
+  }
+}
 import {
   addMonths,
   buildSchedule,
@@ -89,6 +101,11 @@ export default function LoanTracker({ config }) {
           <span className="save" data-s={status} role="status">
             {statusText}
           </span>
+          {config.portalLink && portalHref(s.portalUrl) && (
+            <a className="btn primary" href={portalHref(s.portalUrl)} target="_blank" rel="noopener noreferrer" title={portalHref(s.portalUrl)}>
+              Log in at {hostOf(portalHref(s.portalUrl))} ↗
+            </a>
+          )}
           <button className="btn" type="button" aria-expanded={showSettings} onClick={() => setShowSettings((v) => !v)}>
             Loan details
           </button>
@@ -107,6 +124,7 @@ export default function LoanTracker({ config }) {
           rules={rules}
           storageKey={storageKey}
           variableRate={variableRate}
+          portalLink={!!config.portalLink}
           keepPayment={keepPayment}
           daily={dayCount === "actual/365"}
           firstPayment={rows[0]?.payment ?? 0}
@@ -620,7 +638,7 @@ function YearGroup({ year, rows, variableRate, paid, next, today, money, fmtDate
   );
 }
 
-function Settings({ settings, onChange, state, setState, defaults, currency, termOptions, rules, storageKey, variableRate, keepPayment, daily, firstPayment, money }) {
+function Settings({ settings, onChange, state, setState, defaults, currency, termOptions, rules, storageKey, variableRate, portalLink, keepPayment, daily, firstPayment, money }) {
   const [armed, setArmed] = useState(false);
   const fileRef = useRef(null);
   const [msg, setMsg] = useState("");
@@ -638,6 +656,9 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
     { k: "term", label: keepPayment ? "Contracted term (months)" : "Term (months)", type: "number", step: "1", min: 1, max: 600, integer: true, list: "term-options" },
     { k: "fee", label: `Monthly account fee (${cur})`, type: "number", step: "0.01", min: 0 },
     { k: "start", label: "Loan start date", type: "date" },
+    ...(portalLink
+      ? [{ k: "portalUrl", label: "Loan portal login link", type: "url", placeholder: "e.g. https://online.yourlender.com.au/login", wide: true }]
+      : []),
     ...(rules.breakCost
       ? [
           { k: "swapFall", label: "Swap rate fall for break cost (%)", type: "number", step: "0.1", min: 0 },
@@ -647,6 +668,14 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
   ];
 
   const commit = (f, raw) => {
+    if (f.type === "url") {
+      const v = raw.trim();
+      if (v === (settings[f.k] || "")) return;
+      if (v && !portalHref(v)) return setMsg("That doesn't look like a web address, e.g. www.lender.com.au/login");
+      setMsg("");
+      onChange(f.k, v); // empty clears it
+      return;
+    }
     if (f.type === "date") {
       if (raw) onChange(f.k, raw);
       return;
@@ -694,7 +723,7 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
   return (
     <form className="settings" onSubmit={(e) => e.preventDefault()}>
       {fields.map((f) => (
-        <label key={f.k}>
+        <label key={f.k} style={f.wide ? { gridColumn: "1 / -1" } : undefined}>
           {f.label}
           <input
             id={`f-${f.k}`}
@@ -703,7 +732,9 @@ function Settings({ settings, onChange, state, setState, defaults, currency, ter
             min={f.min}
             max={f.max}
             list={f.list}
-            defaultValue={settings[f.k]}
+            placeholder={f.placeholder}
+            inputMode={f.type === "url" ? "url" : undefined}
+            defaultValue={settings[f.k] ?? ""}
             key={`${f.k}-${settings[f.k]}`}
             onBlur={(e) => commit(f, e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && commit(f, e.currentTarget.value)}

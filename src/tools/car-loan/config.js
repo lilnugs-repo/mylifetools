@@ -24,4 +24,5 @@ export default {
     breakCost: true, // include the lender's break cost estimate
   },
   termOptions: [36, 48, 60, 72, 84],
+  portalLink: true, // "Loan portal login link" in Loan details, shown as a button at the top
 };
