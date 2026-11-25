@@ -1,0 +1,46 @@
+/* Deals & Sign-up Bonuses. Builds on loan-tracker.css (header, chips, settings form, notes). */
+.dl-setup { background: var(--soon-soft); border: 1px solid var(--soon); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px }
+.dl-setup strong { color: var(--soon); font-size: 15px }
+.dl-setup ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px }
+.dl-setup a { color: var(--accent); font-weight: 700 }
+.dl-setup code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface); border-radius: 4px; padding: 0 4px }
+
+.dl-settings h2 { color: var(--fg) }
+.dl-settings .full-row { grid-column: 1 / -1 }
+.dl-check { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 14px !important; color: var(--fg) !important; cursor: pointer }
+.dl-check input { width: 16px; height: 16px; accent-color: var(--accent); flex: none }
+
+.dl-scan { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px }
+.dl-scan > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px }
+.dl-scan small { font-size: 12px; color: var(--muted) }
+.dl-msg { font-weight: 700 }
+.dl-msg.ok { color: var(--ok) !important }
+.dl-msg.err { color: var(--warn) !important }
+.dl-scan .btn.primary[disabled] { opacity: .5; cursor: default }
+
+.dl-filters { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center }
+.dl-tabs { display: flex; gap: 6px; flex-wrap: wrap }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent) }
+.dl-filters select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; color: var(--fg) }
+
+/* The thread: one post per scan, joined by a line down the left */
+.dl-thread { display: flex; flex-direction: column; gap: 16px; position: relative }
+.dl-post { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 14px }
+.dl-post > header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.dl-post > header .chip { margin-top: 0 }
+.dl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none }
+.dl-section { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line) }
+.dl-section h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px }
+.dl-section h3 .ico { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none }
+.dl-section h3 .ico svg { width: 16px; height: 16px }
+.dl-answer { margin: 0; font-size: 14px; background: var(--bg); border-radius: 8px; padding: 10px 12px; line-height: 1.5 }
+.dl-section ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px }
+.dl-section li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px }
+.dl-section li[data-mark="star"] { border-color: var(--soon); background: var(--soon-soft) }
+.dl-section li[data-mark="signed"] { border-color: var(--ok) }
+.dl-section li[data-mark="hide"] { opacity: .6 }
+.dl-section li a { font-weight: 700; color: var(--fg); text-decoration: none; overflow-wrap: anywhere }
+.dl-section li a:hover { color: var(--accent); text-decoration: underline }
+.dl-section li small { font-size: 12px; color: var(--muted) }
+.dl-section li p { margin: 4px 0 0; font-size: 13px; color: var(--muted) }
+.dl-marks { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px }

@@ -16,6 +16,8 @@ A lightweight React app (Vite) holding a directory of personal tools, deployed o
 - **Money Owed to Me** (locked, $): money you've lent: who, how much, what for, when it's due back, and repayments so far (partial or in full, or forgiven). Optionally emails the borrower a note when you add it, and reminder emails once the return date passes (once, or every 3/7/14 days until repaid), sent by the daily job. Replies go to you. Emails to other people need a verified sending domain in Resend (`NOTIFY_FROM`). Your own reminder email also lists overdue loans.
 - **Home screen exchange rate**: the latest AUD → NPR rate from `/api/fx` (ExchangeRate-API, with a backup source), cached by Vercel for an hour.
 
+- **Deals & Sign-up Bonuses** (locked): new-customer offers found on the web with [Tavily](https://tavily.com) (bank accounts, credit cards, electricity & gas, internet, mobile, streaming, cashback). A weekly scan (Monday morning, Vercel Cron) plus on-demand scans from the tab, limited to one every 6 hours and 20 a month to stay inside Tavily's free 1,000 searches. Each scan is a post in a thread: Tavily's AI summary per category and only links not posted before. Mark deals Interested / Signed up / Not for me, choose categories, and get the new deals by email after each weekly scan. Needs `TAVILY_API_KEY`.
+
 ## How it fits together
 
 ```
@@ -110,6 +112,7 @@ my-tools/                        # folder and Blob prefix keep the original name
 | `CRON_SECRET` | Lets only Vercel's scheduler trigger the daily check | Any long random text, e.g. the same command as `SESSION_SECRET` |
 | `NOTIFY_FROM` | Optional. Sender, default `My Life Tools <onboarding@resend.dev>` | Your verified Resend domain, e.g. `My Life Tools <reminders@yourdomain.com>` |
 | `NOTIFY_TZ` | Optional. Whose "today" counts, default `Australia/Sydney` | You |
+| `TAVILY_API_KEY` | Web search for Deals & Sign-up Bonuses | [tavily.com](https://tavily.com) → API key (free: 1,000 searches a month) |
 | `APP_URL` | Optional. Link used in emails, default the site's own address | You |
 
 `.env.local` only feeds local development. **For the live site, add `SESSION_SECRET` and `PIN_KEY` (and `SESSION_DAYS` if used) in Vercel → Project → Settings → Environment Variables**, then redeploy. Changing `SESSION_SECRET` signs everyone out.

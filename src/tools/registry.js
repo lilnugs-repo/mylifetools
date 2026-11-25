@@ -94,6 +94,14 @@ export const tools = [
     component: lazy(() => import("./money-owed/MoneyOwed.jsx")),
   },
   {
+    id: "deals",
+    name: "Deals & Sign-up Bonuses",
+    description: "New-customer offers from the web, every week or on demand",
+    icon: "gift",
+    locked: true,
+    component: lazy(() => import("./deals/Deals.jsx")),
+  },
+  {
     id: "reminders",
     name: "Email Reminders",
     description: "An email when a repayment, trial or deal is close",

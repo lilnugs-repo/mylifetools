@@ -230,6 +230,12 @@ export const icons = {
       <path d="M5 21l3.5-1.5H15l5.5-4.5a1.6 1.6 0 0 0-2.2-2.3L15 15" />
     </svg>
   ),
+  gift: (
+    <svg {...base}>
+      <rect x="3" y="8" width="18" height="4" rx="1" />
+      <path d="M5 12v9h14v-9M12 8v13M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5h4zM12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5h-4z" />
+    </svg>
+  ),
   calendar: (
     <svg {...base}>
       <rect x="3" y="5" width="18" height="16" rx="2" />

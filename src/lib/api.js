@@ -46,4 +46,5 @@ export const api = {
   notify: (action) => call("/api/notify", { method: "POST", body: JSON.stringify({ action }) }),
   fx: () => call("/api/fx"),
   owed: (body) => call("/api/owed", { method: "POST", body: JSON.stringify(body) }),
+  deals: (action) => call("/api/deals", { method: "POST", body: JSON.stringify({ action }) }),
 };
