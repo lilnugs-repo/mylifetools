@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import { useCloudState } from "../../lib/useCloudState.js";
-import { AFTER_OPTIONS, DAY_OPTIONS, KINDS, defaultSettings, shapeSettings, whenText } from "./rules.js";
+import { AFTER_OPTIONS, DAY_OPTIONS, KINDS, MAX_EXTRA, defaultSettings, isEmail, shapeSettings, whenText } from "./rules.js";
 import "../_shared/loan/loan-tracker.css"; // header, save status and notes
 import "./reminders.css";
 
@@ -59,7 +59,13 @@ export default function Reminders() {
     setTest({ state: "sending", msg: "" });
     try {
       const r = await api.notify("test");
-      setTest({ state: "ok", msg: `Sent to ${r.to}${r.sent ? ` with ${r.sent} reminder${r.sent > 1 ? "s" : ""}` : ""}. Check your inbox (and junk folder).` });
+      const ex = r.extras;
+      const also = !ex ? "" : ex.skipped ? " (not to your extra addresses yet: see above)" : ex.sent ? ` and ${ex.sent} more address${ex.sent > 1 ? "es" : ""}` : "";
+      const failed = ex?.failed?.length ? ` Couldn't send to ${ex.failed.join(", ")}.` : "";
+      setTest({
+        state: failed ? "err" : "ok",
+        msg: `Sent to ${r.to}${also}${r.sent ? ` with ${r.sent} reminder${r.sent > 1 ? "s" : ""}` : ""}. Check your inbox (and junk folder).${failed}`,
+      });
     } catch (e) {
       const msg =
         e.code === "server" && e.error === "not_configured"
@@ -179,6 +185,12 @@ export default function Reminders() {
         })}
       </section>
 
+      <ExtraEmails
+        list={s.extraEmails}
+        onChange={(extraEmails) => setState((st) => ({ ...st, extraEmails }))}
+        problem={preview?.configured ? preview.extraProblem : null}
+      />
+
       <section className="rm-coming" aria-label="Coming up">
         <div className="payout-head">
           <h2>Coming up</h2>
@@ -241,5 +253,75 @@ export default function Reminders() {
         </p>
       </section>
     </div>
+  );
+}
+
+/** Extra addresses that get a copy of every notification, as well as the main one (NOTIFY_EMAIL). */
+function ExtraEmails({ list, onChange, problem }) {
+  const [value, setValue] = useState("");
+  const [err, setErr] = useState("");
+  const [armed, setArmed] = useState(null); // address waiting for a second tap to remove
+
+  const add = (e) => {
+    e.preventDefault();
+    const v = value.trim().toLowerCase();
+    if (!isEmail(v)) return setErr("That doesn't look like an email address.");
+    if (list.includes(v)) return setErr("That address is already on the list.");
+    if (list.length >= MAX_EXTRA) return setErr(`You can add up to ${MAX_EXTRA} addresses.`);
+    onChange([...list, v]);
+    setValue("");
+    setErr("");
+  };
+  const remove = (a) => {
+    if (armed !== a) {
+      setArmed(a);
+      setTimeout(() => setArmed((x) => (x === a ? null : x)), 3000);
+      return;
+    }
+    onChange(list.filter((x) => x !== a));
+    setArmed(null);
+  };
+
+  return (
+    <section className="rm-extra" aria-label="Also send to">
+      <h2>Also send to</h2>
+      <p className="note">
+        Every notification (reminders, the weekly deals email and test emails) goes to your main address, set in Vercel. Add more
+        addresses here and each gets its own copy, so no one sees the others.
+      </p>
+      {problem && list.length > 0 && <p className="rm-msg err">{problem} Until then, only your main address gets them.</p>}
+      {list.length > 0 && (
+        <ul>
+          {list.map((a) => (
+            <li key={a}>
+              <span>{a}</span>
+              <button className="btn small danger" type="button" onClick={() => remove(a)}>
+                {armed === a ? "Tap again to remove" : "Remove"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {list.length < MAX_EXTRA && (
+        <form className="rm-add" onSubmit={add} noValidate>
+          <input
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            placeholder="name@example.com"
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setErr("");
+            }}
+            aria-label="Email address to add"
+          />
+          <button className="btn" type="submit">
+            Add
+          </button>
+        </form>
+      )}
+      {err && <p className="rm-msg err">{err}</p>}
+    </section>
   );
 }

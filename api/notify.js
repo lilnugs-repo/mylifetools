@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 import { json, readBody } from "./_lib/http.js";
 import { isAuthed } from "./_lib/auth.js";
 import { readJSON, writeJSON } from "./_lib/store.js";
-import { SENT, loadAll, missingConfig, runReminders, sendWithResend, todayIn } from "./_lib/reminders.js";
+import { SENT, extraEmailProblem, loadAll, missingConfig, runReminders, sendNotification, todayIn } from "./_lib/reminders.js";
 import { collect } from "../src/tools/reminders/rules.js";
 import { friendEmailProblem, runOwed, sendToBorrower } from "./_lib/owed.js";
 
@@ -27,7 +27,7 @@ export async function GET(request) {
     const missing = missingConfig();
     if (missing.length) return json(500, { error: "not_configured", missing });
     const today = todayIn();
-    const r = await runReminders({ readJSON, writeJSON, sendEmail: sendWithResend, today, appUrl: appUrl(request) });
+    const r = await runReminders({ readJSON, writeJSON, sendEmail: sendNotification, today, appUrl: appUrl(request) });
     // Money Owed to Me: reminders to borrowers past their return date (needs a verified sending domain)
     let owed = { sent: 0, failed: 0, skipped: friendEmailProblem() };
     if (!owed.skipped) {
@@ -62,14 +62,15 @@ export async function POST(request) {
         cron: !!process.env.CRON_SECRET,
         lastRun: log.lastRun ?? null,
         lastTest: log.lastTest ?? null,
+        extraProblem: extraEmailProblem(),
         items,
       });
     }
 
     if (action === "test") {
       if (missing.length) return json(400, { error: "not_configured", missing });
-      const r = await runReminders({ readJSON, writeJSON, sendEmail: sendWithResend, today, appUrl: appUrl(request), force: true });
-      return json(200, { sent: r.items.length, to: maskEmail(process.env.NOTIFY_EMAIL) });
+      const r = await runReminders({ readJSON, writeJSON, sendEmail: sendNotification, today, appUrl: appUrl(request), force: true });
+      return json(200, { sent: r.items.length, to: maskEmail(process.env.NOTIFY_EMAIL), extras: r.extras });
     }
 
     return json(400, { error: "bad_action" });

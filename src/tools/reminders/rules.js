@@ -72,13 +72,20 @@ export const AFTER_OPTIONS = [0, 1, 2, 3, 5, 7]; // for kinds that start on/afte
 export const defaultSettings = () => ({
   enabled: true,
   kinds: Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, { on: v.on, days: v.days, ...("daily" in v && { daily: v.daily }) }])),
+  extraEmails: [], // every notification also goes to these, as well as NOTIFY_EMAIL
 });
+
+// Extra notification addresses: a simple shape check, lower-cased, no repeats, at most MAX_EXTRA.
+export const MAX_EXTRA = 5;
+export const isEmail = (s) => /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]{2,}$/.test(String(s || "").trim());
+export const cleanEmails = (list) =>
+  [...new Set((Array.isArray(list) ? list : []).map((s) => String(s).trim().toLowerCase()).filter(isEmail))].slice(0, MAX_EXTRA);
 
 export function shapeSettings(v) {
   if (!v || typeof v !== "object" || !v.kinds) return null;
   const d = defaultSettings();
   for (const k of Object.keys(KINDS)) d.kinds[k] = { ...d.kinds[k], ...(v.kinds[k] || {}) };
-  return { enabled: v.enabled !== false, kinds: d.kinds };
+  return { enabled: v.enabled !== false, kinds: d.kinds, extraEmails: cleanEmails(v.extraEmails) };
 }
 
 const LOANS = [carLoan, homeLoan];

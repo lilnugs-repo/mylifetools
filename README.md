@@ -129,6 +129,8 @@ my-tools/                        # folder and Blob prefix keep the original name
 2. In Vercel → Project → Settings → Environment Variables add `RESEND_API_KEY`, `NOTIFY_EMAIL` and `CRON_SECRET` (table above), then redeploy.
 3. Open **Email Reminders** in the app and tap **Send a test email**.
 
+**Extra addresses:** under Notifications › *Also send to*, add up to 5 more addresses. Every notification (daily reminders, the weekly deals email, test emails) goes to `NOTIFY_EMAIL` first, then a separate copy to each extra address, so no one sees the others; a failed extra never stops your own copy. Resend's test sender only delivers to your own account address, so extras need a verified domain in Resend and `NOTIFY_FROM` set to an address on it.
+
 The daily check is set in `vercel.json` for 21:00 UTC (8am in Sydney in summer, 7am in winter). On the Hobby plan Vercel runs it once a day, sometime within that hour. Each reminder is sent once (logged in `_system/reminders-sent.json`); a day with nothing new due sends nothing. The rules for what's "due" live in `src/tools/reminders/rules.js` and are the same ones the settings screen previews.
 
 ## Run locally

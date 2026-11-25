@@ -40,8 +40,9 @@ export async function runReminders({ readJSON, writeJSON, sendEmail, today, appU
   const fresh = force ? items : items.filter((i) => !log.sent[i.key]);
 
   let sent = 0;
+  let extras = null;
   if (fresh.length || force) {
-    await sendEmail(buildEmail(fresh, appUrl, { test: force }));
+    extras = await sendEmail(buildEmail(fresh, appUrl, { test: force }), settings.extraEmails);
     sent = fresh.length;
   }
 
@@ -53,7 +54,7 @@ export async function runReminders({ readJSON, writeJSON, sendEmail, today, appU
   log[force ? "lastTest" : "lastRun"] = { at: stamp, due: items.length, sent };
   await writeJSON(SENT, log);
 
-  return { sent, items, skipped: items.length - fresh.length };
+  return { sent, items, skipped: items.length - fresh.length, extras };
 }
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -127,13 +128,13 @@ ${rows}
 }
 
 /** Sends through Resend's HTTP API (https://resend.com). */
-export async function sendWithResend({ subject, text, html }) {
+export async function sendWithResend({ subject, text, html }, to = process.env.NOTIFY_EMAIL.split(",").map((s) => s.trim()).filter(Boolean)) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: process.env.NOTIFY_FROM || "My Life Tools <onboarding@resend.dev>",
-      to: process.env.NOTIFY_EMAIL.split(",").map((s) => s.trim()).filter(Boolean),
+      to,
       subject,
       text,
       html,
@@ -143,4 +144,33 @@ export async function sendWithResend({ subject, text, html }) {
     const body = await res.text().catch(() => "");
     throw Object.assign(new Error(`Resend refused the email (${res.status}): ${body.slice(0, 300)}`), { status: 502 });
   }
+}
+
+/**
+ * Why emails can't go to addresses other than your own, or null if they can. Resend's test
+ * sender (onboarding@resend.dev) only delivers to the address on the Resend account, so
+ * extra addresses need a verified domain and NOTIFY_FROM set to an address on it.
+ */
+export function extraEmailProblem() {
+  const from = process.env.NOTIFY_FROM || "";
+  if (!from || /@resend\.dev>?\s*$/i.test(from))
+    return "Extra addresses need your own sending address: verify a domain in Resend and set NOTIFY_FROM to an address on it.";
+  return null;
+}
+
+/**
+ * Send a notification to NOTIFY_EMAIL, then a separate copy to each extra address (so no one
+ * sees anyone else's address). A failed extra never stops your own copy; a failure of your own
+ * copy throws as before. Returns { sent, failed: [address], skipped: reason | null } for the extras.
+ */
+export async function sendNotification(email, extras = [], send = sendWithResend) {
+  await send(email);
+  const list = (extras || []).filter(Boolean);
+  if (!list.length) return { sent: 0, failed: [], skipped: null };
+  const problem = extraEmailProblem();
+  if (problem) return { sent: 0, failed: [], skipped: problem };
+  const results = await Promise.allSettled(list.map((to) => send(email, [to])));
+  const failed = list.filter((_, i) => results[i].status === "rejected");
+  results.forEach((r, i) => r.status === "rejected" && console.error(`notification to extra address ${i + 1} failed`, r.reason?.message));
+  return { sent: list.length - failed.length, failed, skipped: null };
 }

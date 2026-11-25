@@ -9,7 +9,8 @@ import { json, readBody } from "./_lib/http.js";
 import { isAuthed } from "./_lib/auth.js";
 import { readJSON, writeJSON } from "./_lib/store.js";
 import { FEED, SCANS, buildDealsEmail, runScan, tavilyConfigured } from "./_lib/deals.js";
-import { missingConfig, sendWithResend } from "./_lib/reminders.js";
+import { missingConfig, sendNotification } from "./_lib/reminders.js";
+import { shapeSettings } from "../src/tools/reminders/rules.js";
 import { LIMITS, scanAllowance } from "../src/tools/deals/feed.js";
 
 const appUrl = (request) => process.env.APP_URL || new URL(request.url).origin;
@@ -33,7 +34,8 @@ export async function GET(request) {
     let emailed = false;
     if (r.newCount && r.settings.email && !missingConfig().length) {
       try {
-        await sendWithResend(buildDealsEmail(r.post, appUrl(request)));
+        const extras = shapeSettings((await readJSON("tools/reminders.json"))?.data)?.extraEmails ?? [];
+        await sendNotification(buildDealsEmail(r.post, appUrl(request)), extras);
         emailed = true;
       } catch (e) {
         console.error("deals email failed", e);
