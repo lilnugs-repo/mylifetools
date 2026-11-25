@@ -1,5 +1,6 @@
-// Deals & Sign-up Bonuses.
-// GET  /api/deals                    weekly scan from Vercel Cron (Authorization: Bearer CRON_SECRET),
+// Deals & Sign-up Bonuses. Sources: OzBargain's RSS feeds (no setup) and Tavily web search
+// (when TAVILY_API_KEY is set).
+// GET /api/deals                    weekly scan from Vercel Cron (Authorization: Bearer CRON_SECRET),
 //                                    then a "new deals" email if switched on and Resend is set up
 // POST /api/deals { action: "feed" } the feed, scan limits and setup status (logged-in app)
 // POST /api/deals { action: "scan" } scan now (logged-in app), within the limits in src/tools/deals/feed.js
@@ -7,7 +8,7 @@ import crypto from "node:crypto";
 import { json, readBody } from "./_lib/http.js";
 import { isAuthed } from "./_lib/auth.js";
 import { readJSON, writeJSON } from "./_lib/store.js";
-import { FEED, SCANS, buildDealsEmail, runScan } from "./_lib/deals.js";
+import { FEED, SCANS, buildDealsEmail, runScan, tavilyConfigured } from "./_lib/deals.js";
 import { missingConfig, sendWithResend } from "./_lib/reminders.js";
 import { LIMITS, scanAllowance } from "../src/tools/deals/feed.js";
 
@@ -22,13 +23,12 @@ function fromCron(request) {
 
 async function status() {
   const log = (await readJSON(SCANS)) || { runs: [] };
-  return { configured: !!process.env.TAVILY_API_KEY, limits: LIMITS, allowance: scanAllowance(log.runs) };
+  return { configured: true, web: tavilyConfigured(), limits: LIMITS, allowance: scanAllowance(log.runs) };
 }
 
 export async function GET(request) {
   try {
     if (!fromCron(request)) return json(401, { error: "unauthorised" });
-    if (!process.env.TAVILY_API_KEY) return json(500, { error: "not_configured", missing: ["TAVILY_API_KEY"] });
     const r = await runScan({ readJSON, writeJSON, trigger: "weekly" });
     let emailed = false;
     if (r.newCount && r.settings.email && !missingConfig().length) {
@@ -57,7 +57,6 @@ export async function POST(request) {
     }
 
     if (action === "scan") {
-      if (!process.env.TAVILY_API_KEY) return json(400, { error: "not_configured", missing: ["TAVILY_API_KEY"] });
       const log = (await readJSON(SCANS)) || { runs: [] };
       const allow = scanAllowance(log.runs);
       if (!allow.ok) return json(429, { error: "too_soon", retryAfter: allow.retryAfter, left: allow.left });

@@ -1,15 +1,18 @@
-// Deals scan: search Tavily for each category, keep links not posted before, and add one
-// post to the feed (deals/feed.json). Storage, search and email are passed in, so the scan
-// can be tested without Blob, Tavily or Resend.
-import { CATEGORIES, defaults, domainOf, enabledCategories, shapeState } from "../../src/tools/deals/feed.js";
+// Deals scan: for each category, read OzBargain's feed and run a Tavily search, keep links not
+// posted before, and add one post to the feed (deals/feed.json). Storage, search, feeds and
+// email are passed in, so the scan can be tested without Blob, Tavily, OzBargain or Resend.
+import { AU_SITES, CATEGORIES, defaults, domainOf, enabledCategories, isForeignDomain, shapeState } from "../../src/tools/deals/feed.js";
+import { fetchFeed, isLive } from "./ozbargain.js";
 
 export const FEED = "deals/feed.json";
 export const SCANS = "deals/scans.json";
 const KEEP_POSTS = 60;
-const KEEP_SEEN = 2000;
-const PER_CATEGORY = 5;
+const KEEP_SEEN = 3000;
+const PER_CATEGORY = 5; // per source
 
-/** One Tavily search. Throws { status, message } on failure. */
+export const tavilyConfigured = () => !!process.env.TAVILY_API_KEY;
+
+/** One Tavily search, kept to Australia. Throws { status, message } on failure. */
 export async function tavilySearch(query) {
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
@@ -17,11 +20,13 @@ export async function tavilySearch(query) {
     body: JSON.stringify({
       query,
       topic: "general",
-      country: "australia",
+      country: "australia", // boosts Australian results
+      include_domains: AU_SITES, // Australian deal and comparison sites…
+      include_domains_mode: "prefer", // …ranked first, without excluding providers' own sites
       search_depth: "basic", // 1 credit
       time_range: "month",
       include_answer: "basic",
-      max_results: 8,
+      max_results: 10,
     }),
   });
   if (!res.ok) {
@@ -41,41 +46,92 @@ const TAVILY_MESSAGES = {
 
 /**
  * Run one scan and save it. `trigger`: "weekly" | "manual".
- * Returns { post, newCount, errors }.
+ * `search` (Tavily) is skipped when it's null or switched off; `feeds` (OzBargain) likewise.
+ * Returns { post, newCount, errors, settings }.
  */
-export async function runScan({ readJSON, writeJSON, search = tavilySearch, trigger, now = new Date() }) {
+export async function runScan({
+  readJSON,
+  writeJSON,
+  search = tavilyConfigured() ? tavilySearch : null,
+  feeds = fetchFeed,
+  trigger,
+  now = new Date(),
+}) {
   const settings = shapeState((await readJSON("tools/deals.json"))?.data) ?? defaults();
   const feed = (await readJSON(FEED)) || { posts: [], seen: [] };
   const seen = new Set(feed.seen);
   const cats = enabledCategories(settings);
-
-  const results = await Promise.allSettled(cats.map((k) => search(CATEGORIES[k].query)));
-  const sections = [];
+  const useOzb = settings.sources.ozbargain !== false && !!feeds;
+  const useWeb = settings.sources.tavily !== false && !!search;
   const errors = [];
-  results.forEach((r, i) => {
-    const cat = cats[i];
-    if (r.status === "rejected") {
-      errors.push({ cat, message: TAVILY_MESSAGES[r.reason?.status] || r.reason?.message || "Search failed" });
-      return;
-    }
-    const fresh = (r.value.results || [])
-      .filter((x) => x.url && !seen.has(x.url))
+
+  // OzBargain: each feed once, shared by the categories that read it
+  const feedPaths = useOzb ? [...new Set(cats.map((k) => CATEGORIES[k].ozb?.feed).filter(Boolean))] : [];
+  const feedItems = {};
+  await Promise.all(
+    feedPaths.map(async (p) => {
+      try {
+        feedItems[p] = (await feeds(p)).filter((it) => it.url && isLive(it, now));
+      } catch (e) {
+        errors.push({ source: "ozbargain", message: `OzBargain couldn't be read (${e.status || e.message}).` });
+      }
+    })
+  );
+
+  // Tavily: one search per category that has a query
+  const webCats = useWeb ? cats.filter((k) => CATEGORIES[k].query) : [];
+  const web = await Promise.allSettled(webCats.map((k) => search(CATEGORIES[k].query)));
+  const webByCat = {};
+  web.forEach((r, i) => {
+    if (r.status === "fulfilled") webByCat[webCats[i]] = r.value;
+    else errors.push({ cat: webCats[i], source: "tavily", message: TAVILY_MESSAGES[r.reason?.status] || r.reason?.message || "Search failed" });
+  });
+
+  const sections = [];
+  for (const cat of cats) {
+    const c = CATEGORIES[cat];
+    const ozb = (feedItems[c.ozb?.feed] || [])
+      .filter((it) => c.ozb.match(it) && !seen.has(it.url))
+      .sort((a, b) => b.votes - a.votes)
+      .slice(0, PER_CATEGORY)
+      .map((it) => ({
+        source: "ozbargain",
+        title: it.title.slice(0, 200),
+        url: it.url,
+        merchant: it.merchant,
+        snippet: it.snippet,
+        domain: "ozbargain.com.au",
+        published: it.published,
+        expiry: it.expiry,
+        votes: it.votes,
+        comments: it.comments,
+      }));
+    for (const x of ozb) seen.add(x.url);
+
+    const w = webByCat[cat];
+    const webResults = (w?.results || [])
+      .filter((x) => x.url && !seen.has(x.url) && !isForeignDomain(domainOf(x.url)))
       .slice(0, PER_CATEGORY)
       .map((x) => ({
+        source: "tavily",
         title: String(x.title || domainOf(x.url)).slice(0, 200),
         url: x.url,
         snippet: String(x.content || "").replace(/\s+/g, " ").slice(0, 400),
         domain: domainOf(x.url),
         published: x.published_date || null,
       }));
-    for (const x of fresh) seen.add(x.url);
-    if (fresh.length) sections.push({ cat, answer: String(r.value.answer || "").slice(0, 1500), results: fresh });
-  });
+    for (const x of webResults) seen.add(x.url);
 
-  // Every search failed for the same reason (bad key, no credits): say so instead of posting nothing
-  if (!sections.length && errors.length === cats.length && cats.length) {
-    throw Object.assign(new Error(errors[0].message), { status: 502, code: "search_failed" });
+    const results = [...ozb, ...webResults];
+    if (results.length) sections.push({ cat, answer: webResults.length ? String(w.answer || "").slice(0, 1500) : "", results });
   }
+
+  // Nothing could be read at all (bad key, no credits, OzBargain down): say so instead of posting nothing
+  const tried = feedPaths.length + webCats.length;
+  if (!tried) throw Object.assign(new Error("No source is switched on, or web search isn't set up."), { status: 400, code: "no_source" });
+  const ozbDown = !feedPaths.length || !Object.keys(feedItems).length;
+  const webDown = !webCats.length || !Object.keys(webByCat).length;
+  if (!sections.length && ozbDown && webDown) throw Object.assign(new Error(errors[0].message), { status: 502, code: "search_failed" });
 
   const post = {
     id: now.toISOString(),

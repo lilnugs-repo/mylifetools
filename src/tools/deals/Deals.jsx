@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api.js";
 import { useCloudState } from "../../lib/useCloudState.js";
 import { icons } from "../../components/icons.jsx";
-import { CATEGORIES, LIMITS, MARKS, STORAGE_KEY, emptyState, shapeState } from "./feed.js";
+import { safeUrl } from "../../lib/files.js";
+import { CATEGORIES, LIMITS, MARKS, SOURCES, STORAGE_KEY, emptyState, shapeState } from "./feed.js";
 import "../_shared/loan/loan-tracker.css"; // header, save status, chips, notes
 import "./deals.css";
 
@@ -12,6 +13,10 @@ import "./deals.css";
  * server (api/deals.js); what you mark (interested / signed up / not for me) and which
  * categories to scan are saved here as tools/deals.json.
  */
+const fmtDay = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(+d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+};
 const fmtWhen = (iso) =>
   new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 const fmtWait = (secs) => (secs >= 86400 ? `${Math.ceil(secs / 86400)} days` : secs >= 3600 ? `${Math.ceil(secs / 3600)} h` : `${Math.max(1, Math.ceil(secs / 60))} min`);
@@ -92,9 +97,10 @@ export default function Deals() {
         </div>
       </header>
 
-      {feed && !feed.configured && (
-        <section className="rm-setup dl-setup">
-          <strong>Searching isn't set up yet</strong>
+      {feed && !feed.web && state.sources.tavily !== false && (
+        <section className="dl-setup">
+          <strong>Deals come from OzBargain for now</strong>
+          <span>To also search the wider web (with an AI summary per category):</span>
           <ol>
             <li>
               Sign up at{" "}
@@ -112,6 +118,14 @@ export default function Deals() {
 
       {showSettings && (
         <section className="settings dl-settings">
+          <h2 className="full-row">Where to look</h2>
+          {Object.entries(SOURCES).map(([k, label]) => (
+            <label key={k} className="dl-check">
+              <input type="checkbox" checked={state.sources[k] !== false} onChange={(e) => setState((st) => ({ ...st, sources: { ...st.sources, [k]: e.target.checked } }))} />
+              {label}
+              {k === "tavily" && feed && !feed.web && <small> (not set up)</small>}
+            </label>
+          ))}
           <h2 className="full-row">Search these</h2>
           {Object.entries(CATEGORIES).map(([k, c]) => (
             <label key={k} className="dl-check">
@@ -123,7 +137,10 @@ export default function Deals() {
             <input type="checkbox" checked={state.email} onChange={(e) => setState((st) => ({ ...st, email: e.target.checked }))} />
             Email me the new deals after each weekly scan (needs email reminders set up)
           </label>
-          <p className="note full-row">Each category is one search. Fewer categories use fewer of Tavily's free monthly searches.</p>
+          <p className="note full-row">
+            OzBargain deals come from its public feeds and are free. Each category is also one web search, so fewer categories use
+            fewer of Tavily's free monthly searches. Everything is kept to Australian offers.
+          </p>
         </section>
       )}
 
@@ -140,7 +157,7 @@ export default function Deals() {
           </small>
           {scan.msg && <small className={`dl-msg ${scan.state}`}>{scan.msg}</small>}
         </div>
-        <button className="btn primary" type="button" onClick={scanNow} disabled={scan.state === "busy" || (allow && !allow.ok) || (feed && !feed.configured)}>
+        <button className="btn primary" type="button" onClick={scanNow} disabled={scan.state === "busy" || (allow && !allow.ok)}>
           {scan.state === "busy" ? "Searching…" : "Find deals now"}
         </button>
       </section>
@@ -166,7 +183,7 @@ export default function Deals() {
       )}
 
       {err && <p className="note">{err}</p>}
-      {feed && !feed.posts.length && feed.configured && <p className="note">No deals yet. Tap “Find deals now”, or wait for Monday's scan.</p>}
+      {feed && !feed.posts.length && <p className="note">No deals yet. Tap “Find deals now”, or wait for Monday's scan.</p>}
       {feed?.posts?.length > 0 && !posts.length && <p className="note">Nothing here with these filters.</p>}
 
       <div className="dl-thread">
@@ -195,7 +212,26 @@ export default function Deals() {
                           <a href={r.url} target="_blank" rel="noopener noreferrer">
                             {r.title}
                           </a>
-                          <small>{r.domain}</small>
+                          {r.source === "ozbargain" ? (
+                            <small className="dl-meta">
+                              <span className="dl-src ozb">OzBargain</span>
+                              <span className="num">▲ {r.votes}</span>
+                              <span className="num">
+                                {r.comments} comment{r.comments === 1 ? "" : "s"}
+                              </span>
+                              {r.expiry && <span>Ends {fmtDay(r.expiry)}</span>}
+                              {safeUrl(r.merchant) && (
+                                <a href={safeUrl(r.merchant)} target="_blank" rel="noopener noreferrer">
+                                  Go to the store ↗
+                                </a>
+                              )}
+                            </small>
+                          ) : (
+                            <small className="dl-meta">
+                              <span className="dl-src">Web</span>
+                              {r.domain}
+                            </small>
+                          )}
                           {r.snippet && <p>{r.snippet}</p>}
                           <div className="dl-marks">
                             {Object.entries(MARKS).map(([k, label]) => (
@@ -218,8 +254,8 @@ export default function Deals() {
 
       {feed?.posts?.length > 0 && (
         <p className="note">
-          Summaries are written by Tavily's AI from the search results and can miss fine print or include ended offers. Check the terms on
-          the provider's site before signing up.
+          OzBargain deals are posted by its community; votes show how others rated them. Web summaries are written by Tavily's AI and can
+          miss fine print. Either way, check the terms on the provider's site before signing up.
         </p>
       )}
     </div>
