@@ -71,9 +71,12 @@ export const SOURCES = { ozbargain: "OzBargain", tavily: "Web search (Tavily)" }
 /**
  * Keep Tavily to Australia: it boosts Australian results (country), prefers these Australian
  * deal and comparison sites, and anything on another country's domain is dropped.
+ * Whirlpool is here rather than read directly: its robots.txt only admits named search
+ * engines, so its threads reach the app through Tavily's index, never by the app visiting it.
  */
 export const AU_SITES = [
   "ozbargain.com.au",
+  "whirlpool.net.au",
   "finder.com.au",
   "canstar.com.au",
   "mozo.com.au",
